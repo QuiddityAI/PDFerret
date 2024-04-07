@@ -1,0 +1,15 @@
+version: "3.8"
+services:
+  grobid:
+    image: lfoppiano/grobid:latest-develop
+    init: true
+    ports:
+      - "127.0.0.1:8070:8070"
+      - "127.0.0.1:8071:8071"
+    environment:
+      - grobid__3rdparty__pdf2xml__memory__limit__mb=8000
+    deploy:
+      resources:
+        limits:
+          cpus: "8"
+          memory: "10000mb"
