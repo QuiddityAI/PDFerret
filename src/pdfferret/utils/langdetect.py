@@ -1,7 +1,7 @@
 from typing import BinaryIO, Union
 from lingua import Language, LanguageDetectorBuilder
 
-from src.datamodels import MetaInfo, PDFDoc
+from ..datamodels import MetaInfo, PDFDoc
 from ..base import BaseProcessor
 
 languages = [Language.ENGLISH, Language.GERMAN, Language.FRENCH]
