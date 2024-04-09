@@ -1,8 +1,6 @@
-from typing import BinaryIO, Union, List
-
 import numpy as np
-from ..base import BaseExtractor
-from ..datamodels import PDFChunk
+from ..base import BaseProcessor
+from ..datamodels import PDFChunk, MetaInfo, PDFDoc
 from unstructured.partition.pdf import partition_pdf
 from unstructured.documents import elements as doc_elements
 
@@ -21,8 +19,9 @@ def extract_bbox(coords):
     return (xmin, xmax, ymin, ymax)
 
 
-class UnstructuredTextExtractor(BaseExtractor):
+class UnstructuredTextExtractor(BaseProcessor):
     parallel = "process"
+    operates_on = MetaInfo
 
     def __init__(self, strategy="auto", languages=('eng',), min_text_len=100, batch_size=16, n_proc=8):
         '''
@@ -34,7 +33,8 @@ class UnstructuredTextExtractor(BaseExtractor):
         self.languages = list(languages)
         self.min_text_len = min_text_len
 
-    def extract_single(self, pdf: Union[str, BinaryIO]) -> List[PDFChunk]:
+    def process_single(self, meta: MetaInfo) -> PDFDoc:
+        pdf = meta.file_features.file
         if isinstance(pdf, str):
             input_kwargs = dict(filename=pdf)
         else:
@@ -63,4 +63,4 @@ class UnstructuredTextExtractor(BaseExtractor):
                              text=text,
                              coordinates=[(xmin, ymin), (xmax, ymax)])
             chunks.append(chunk)
-        return chunks
+        return PDFDoc(metainfo=meta, chunks=chunks)

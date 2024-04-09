@@ -2,8 +2,9 @@
 from pypdf import PdfReader
 import numpy as np
 
+
 def gen_dict_extract(key, var):
-    if hasattr(var,'items'): 
+    if hasattr(var, 'items'):
         for k, v in var.items():
             v = v.get_object()
             if k == key:
@@ -14,6 +15,7 @@ def gen_dict_extract(key, var):
             if hasattr(v, 'items'):
                 for result in gen_dict_extract(key, v):
                     yield result
+
 
 def extract_img_sizes(reader):
     # iterate through pdf metainformation until XObject of type image is found
@@ -26,11 +28,12 @@ def extract_img_sizes(reader):
             sizes.append((h / page.mediabox.height, w / page.mediabox.width))
     return np.array(sizes)
 
+
 def mad(x):
     return np.median(np.abs(x - np.median(x, axis=0)))
 
-def is_scanned(file):
-    reader = PdfReader(file)
+
+def is_scanned(reader: PdfReader):
     number_of_pages = len(reader.pages)
     # firsly we extract metainformation about images in PDF file
     sizes = extract_img_sizes(reader)

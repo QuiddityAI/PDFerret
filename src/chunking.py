@@ -4,7 +4,7 @@ from nltk.tokenize import sent_tokenize
 from string import punctuation
 
 from .datamodels import PDFDoc
-from .metrics import spellcheck_score
+from .utils.metrics import spellcheck_score
 from .datamodels import PDFChunk
 from .base import BaseProcessor
 from .cleaning import clean_chunk
@@ -185,16 +185,17 @@ def concatenate_chunks(chunks, A, B):
     return result
 
 
-def chunk_filter(text):
+def chunk_filter(text, lang):
     if len(text) < MIN_CHUNK_LEN:
         return False
-    if spellcheck_score(text) < SPELLCHECK_SCORE_THRESHOLD:
+    if spellcheck_score(text, lang) < SPELLCHECK_SCORE_THRESHOLD:
         return False
     return True
 
 
 class StandardChunker(BaseProcessor):
     parallel = False
+    operates_on = PDFDoc
 
     def __init__(self, clean_text=True):
         self.clean_text = clean_text
@@ -210,7 +211,7 @@ class StandardChunker(BaseProcessor):
 
         # Second pass: remove bad chunks
         filtered_chunks = [
-            ch for ch in shorter_chunks if chunk_filter(ch.text)]
+            ch for ch in shorter_chunks if chunk_filter(ch.text, lang=doc.metainfo.language)]
 
         # third pass: combine short chunks into longer ones
         normal_len_chunks = concatenate_chunks(

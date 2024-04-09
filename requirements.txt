@@ -4,4 +4,5 @@ pandas
 pypdf
 pyspellchecker
 requests
-unstructured
+unstructured[pdf]
+lingua

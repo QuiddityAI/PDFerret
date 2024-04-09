@@ -1,10 +1,11 @@
+import glob
 from .metainfo_extractor import GROBIDMetaExtractor
 from .text_extrators.unstructured import UnstructuredTextExtractor
 from .text_extrators.grobid import GROBIDTextExtractor
 from typing import BinaryIO, Dict, Union
-from .datamodels import PDFDoc, MetaInfo
+from .datamodels import PDFDoc, MetaInfo, PDFFile
 from .chunking import StandardChunker
-from .scan_detector import is_scanned
+from .file_info_extractor import FileInfoExtractor
 
 meta_extractors = {"grobid": GROBIDMetaExtractor}
 text_extractors = {"grobid": GROBIDTextExtractor,
@@ -42,26 +43,25 @@ class PDFerret():
         else:
             self.chunker = chunker
 
-    def extract_batch(self, pdfs: Dict[str, Union[str, BinaryIO]]) -> Dict[str, PDFDoc]:
-        # firstly, heuristically detect if pdf is scanned
+        self.fileinfoextractor = FileInfoExtractor()
+
+    def extract_batch(self, pdfs: Dict[str, PDFFile]) -> Dict[str, PDFDoc]:
+        # firstly, heuristically detect if pdf is scanned and its language:
+        metainfo = self.fileinfoextractor.process_batch(pdfs)
 
         # if grobid is used for both text and meta extraction run it just once
         if (isinstance(self.meta_extractor, meta_extractors['grobid']) and
                 isinstance(self.text_extractor, text_extractors['grobid'])):
             self.text_extractor.extract_meta = True
-            docs = self.text_extractor.extract_batch(pdfs)
+            docs = self.text_extractor.process_batch(metainfo)
             if self.chunker:
                 docs = self.chunker.process_batch(docs)
             return docs
         # otherwise extract meta and text separately then combine
-        metainfo = self.meta_extractor.extract_batch(pdfs)
-        chunks = self.text_extractor.extract_batch(pdfs)
-        extracted_pdf_docs = {}
-        for key in pdfs:
-            article_meta = metainfo[key] if key in metainfo else MetaInfo()
-            article_chunks = chunks[key] if key in chunks else []
-            extracted_pdf_docs[key] = PDFDoc(article_meta, article_chunks)
-
+        # note that metaextractors update the metainfo, while
+        # doc extractors convert it to PDFDoc combining metainfo with chunks
+        metainfo = self.meta_extractor.process_batch(metainfo)
+        docs = self.text_extractor.process_batch(metainfo)
         if self.chunker:
-            extracted_pdf_docs = self.chunker.process_batch(extracted_pdf_docs)
-        return extracted_pdf_docs
+            docs = self.chunker.process_batch(docs)
+        return docs

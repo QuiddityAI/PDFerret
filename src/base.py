@@ -1,15 +1,19 @@
 from abc import ABC, abstractmethod
-from typing import BinaryIO, List, Union, Dict
+from typing import BinaryIO, Dict, get_args
 import concurrent.futures
-from .utils import split_every
-from .datamodels import PDFDoc
+from .utils.utils import split_every
+from .datamodels import PDFDoc, PDFChunk, MetaInfo, PDFFile
 import logging
 
 engines = {"thread": concurrent.futures.ThreadPoolExecutor,
            "process": concurrent.futures.ProcessPoolExecutor}
 
 
-class BaseExtractor(ABC):
+class Parallelizable(ABC):
+    """Base implementing parallel processing and batching
+
+    """
+
     parallel = False
 
     def __init__(self, n_proc=None, batch_size=None) -> None:
@@ -17,10 +21,10 @@ class BaseExtractor(ABC):
         self.batch_size = batch_size
 
     @abstractmethod
-    def extract_single(self, pdf: Union[str, BinaryIO]):
+    def _process_single(self, pdf: PDFFile):
         pass
 
-    def extract_batch(self, X: Dict[str, Union[str, BinaryIO]]):
+    def _process_batch(self, X: Dict[str, PDFFile]):
         parsed = {}
         if not self.parallel:
             parsed = self._process_serial(X)
@@ -32,11 +36,11 @@ class BaseExtractor(ABC):
         return parsed
 
     def _process_serial(self,
-                              pdfs: Dict[str, Union[str, BinaryIO]]):
+                              pdfs: Dict[str, PDFFile]):
         parsed_batch = {}
         for _id, pdf in pdfs.items():
             try:
-                ext = self.extract_single(pdf)
+                ext = self._process_single(pdf)
                 parsed_batch[_id] = ext
             except Exception as e:
                 logging.warning(f"{_id} failed: {repr(e)}")
@@ -44,13 +48,13 @@ class BaseExtractor(ABC):
         return parsed_batch
 
     def _process_batch_parallel(self,
-                                pdfs: Dict[str, Union[str, BinaryIO]]):
+                                pdfs: Dict[str, PDFFile]):
         parsed_batch = {}
         Engine = engines[self.parallel]
         with Engine(max_workers=self.n_proc) as executor:
             results = []
             for _id, pdf in pdfs.items():
-                r = executor.submit(self.extract_single, pdf)
+                r = executor.submit(self._process_single, pdf)
                 r._id = _id
                 results.append(r)
 
@@ -62,18 +66,28 @@ class BaseExtractor(ABC):
             parsed_batch[r._id] = parsed
 
         return parsed_batch
-
-
-class BaseProcessor(BaseExtractor):
-    parallel = False
-
-    def extract_single(self, inp):
-        return self.process_single(inp)
     
-    def process_batch(self, X: List[PDFDoc]):
-        return super().extract_batch(X)
+
+
+
+class BaseProcessor(Parallelizable):
+    """Base class that operates on pdfs or extracted data"""
+
+    parallel = False
+    operates_on = int # one of PDFDoc, MetaInfo, Chunk, PDFFile
+
+    def _process_single(self, inp):
+        # isinstance can't simply check against Union type, 
+        # need to wrap it in get_args
+        if isinstance(inp, self.operates_on):
+            return self.process_single(inp)
+        else:
+            raise TypeError(f"This class operates on {self.operates_on} type but {type(inp)} is given")
+    
+    def process_batch(self, X):
+        return super()._process_batch(X)
     
     @abstractmethod
-    def process_single(self, doc: PDFDoc) -> PDFDoc:
+    def process_single(self, X: PDFDoc | PDFChunk | MetaInfo | PDFFile) -> PDFDoc | PDFChunk | MetaInfo:
         pass
     

@@ -2,7 +2,7 @@ from typing import BinaryIO, List, Union
 
 import numpy as np
 from .. import scipdf
-from ..base import BaseExtractor
+from ..base import BaseProcessor
 from ..datamodels import MetaInfo, PDFChunk, PDFDoc
 
 
@@ -28,8 +28,9 @@ def combine_bboxes(coords):
     return (xmin, ymin, xmax, ymax)
 
 
-class GROBIDTextExtractor(BaseExtractor):
+class GROBIDTextExtractor(BaseProcessor):
     parallel = "thread"
+    operates_on = MetaInfo
 
     def __init__(self, extract_meta=False, grobid_url="http://localhost:8070", batch_size=16, n_proc=8):
         super().__init__(n_proc=n_proc, batch_size=batch_size)
@@ -73,14 +74,14 @@ class GROBIDTextExtractor(BaseExtractor):
                 chunks.append(PDFChunk(**chunk))
         return chunks
 
-    def extract_single(self, pdf: Union[str, BinaryIO]) -> Union[List[PDFChunk], PDFDoc]:
+    def process_single(self, meta: MetaInfo) -> PDFDoc:
+        pdf = meta.file_features.file
         parsed = scipdf.parse_pdf_to_dict(pdf, grobid_url=self.grobid_url)
-        target_keys = ['title', 'authors', 'pub_date', 'abstract']
-        extracted = {k: parsed[k] for k in target_keys}
-        metainfo = MetaInfo(**extracted)
+        if self.extract_meta:
+            meta.title = parsed['title']
+            meta.authors = parsed['authors']
+            meta.pub_date = parsed['pub_data']
+            meta.abstract = parsed['abstract']
 
         chunks = self._extract_chunks(parsed)
-        if self.extract_meta:
-            return PDFDoc(metainfo, chunks)
-        else:
-            return chunks
+        return PDFDoc(meta, chunks)
