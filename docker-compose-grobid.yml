@@ -12,4 +12,4 @@ services:
       resources:
         limits:
           cpus: "8"
-          memory: "10000mb"
+          memory: "5000mb"

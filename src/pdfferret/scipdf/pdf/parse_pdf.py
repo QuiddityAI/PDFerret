@@ -170,6 +170,8 @@ def find_references(div):
     """
     For a given section, find references made in the section for publications, figures, tables
     """
+    if not div:
+        return {}
     publication_ref = [ref.attrs.get("target").strip("#") for ref in div.find_all(
         "ref") if ref.attrs.get("type") == "bibr" and "target" in ref.attrs]
     figure_ref = [ref.attrs.get("target").strip("#") for ref in div.find_all(
@@ -188,7 +190,11 @@ def parse_sections(article, as_list: bool = False):
     as_list: bool, if True, output text as a list of paragraph instead
         of joining it together as one single text
     """
+    if not article:
+        return []
     article_text = article.find("text")
+    if not article_text:
+        return []
     divs = article_text.find_all(
         "div", attrs={"xmlns": "http://www.tei-c.org/ns/1.0"})
     sections = []
@@ -245,40 +251,51 @@ def parse_references(article):
     Parse list of references from a given BeautifulSoup of an article
     """
     reference_list = []
-    references = article.find("text").find("div", attrs={"type": "references"})
-    references = references.find_all(
-        "biblstruct") if references is not None else []
+    try:
+        references = article.find("text").find(
+            "div", attrs={"type": "references"})
+        references = references.find_all(
+            "biblstruct") if references is not None else []
+    except AttributeError:
+        return []
     reference_list = []
     for reference in references:
-        ref_id = reference.get('xml:id', "")
-        title = reference.find("title", attrs={"level": "a"})
-        if title is None:
-            title = reference.find("title", attrs={"level": "m"})
-        title = title.text if title is not None else ""
-        journal = reference.find("title", attrs={"level": "j"})
-        journal = journal.text if journal is not None else ""
-        if journal == "":
-            journal = reference.find("publisher")
+        try:
+            ref_id = reference.get('xml:id', "")
+            title = reference.find("title", attrs={"level": "a"})
+            if title is None:
+                title = reference.find("title", attrs={"level": "m"})
+            title = title.text if title is not None else ""
+            journal = reference.find("title", attrs={"level": "j"})
             journal = journal.text if journal is not None else ""
-        year = reference.find("date")
-        year = year.attrs.get("when") if year is not None else ""
-        authors = []
-        for author in reference.find_all("author"):
-            firstname = author.find("forename", {"type": "first"})
-            firstname = firstname.text.strip() if firstname is not None else ""
-            middlename = author.find("forename", {"type": "middle"})
-            middlename = middlename.text.strip() if middlename is not None else ""
-            lastname = author.find("surname")
-            lastname = lastname.text.strip() if lastname is not None else ""
-            if middlename != "":
-                authors.append(firstname + " " + middlename + " " + lastname)
+            if journal == "":
+                journal = reference.find("publisher")
+                journal = journal.text if journal is not None else ""
+            year = reference.find("date")
+            year = year.attrs.get("when") if year is not None else ""
+            authors = []
+            if reference is None:
+                authors = ""
             else:
-                authors.append(firstname + " " + lastname)
-        authors = "; ".join(authors)
-        reference_list.append(
-            {"ref_id": ref_id, "title": title, "journal": journal,
-                "year": year, "authors": authors}
-        )
+                for author in reference.find_all("author"):
+                    firstname = author.find("forename", {"type": "first"})
+                    firstname = firstname.text.strip() if firstname is not None else ""
+                    middlename = author.find("forename", {"type": "middle"})
+                    middlename = middlename.text.strip() if middlename is not None else ""
+                    lastname = author.find("surname")
+                    lastname = lastname.text.strip() if lastname is not None else ""
+                    if middlename != "":
+                        authors.append(firstname + " " +
+                                       middlename + " " + lastname)
+                    else:
+                        authors.append(firstname + " " + lastname)
+                authors = "; ".join(authors)
+            reference_list.append(
+                {"ref_id": ref_id, "title": title, "journal": journal,
+                    "year": year, "authors": authors}
+            )
+        except AttributeError as e:
+            continue
     return reference_list
 
 
@@ -287,7 +304,7 @@ def parse_figure_caption(article):
     Parse list of figures/tables from a given BeautifulSoup of an article
     """
     figures_list = []
-    figures = article.find_all("figure")
+    figures = article.find_all("figure") if article else []
     for figure in figures:
         figure_type = figure.attrs.get("type") or "figure"
         figure_id = figure.attrs.get("xml:id") or ""
@@ -312,7 +329,10 @@ def parse_figure_caption(article):
 
 
 def parse_page_sizes(article):
-    surfaces = article.find("facsimile").findAll("surface")
+    try:
+        surfaces = article.find("facsimile").findAll("surface")
+    except AttributeError as e:
+        return {"lrx": 1.0, "ulx": 1.0, "lry": 1.0, "uly": 1.0}
     return [s.attrs for s in surfaces]
 
 
@@ -321,7 +341,7 @@ def parse_formulas(article):
     Parse list of formulas from a given BeautifulSoup of an article
     """
     formulas_list = []
-    formulas = article.find_all("formula")
+    formulas = article.find_all("formula") if article else []
     for formula in formulas:
         formula_id = formula.attrs["xml:id"] or ""
         formula_text = formula.text

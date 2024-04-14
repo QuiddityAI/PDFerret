@@ -23,7 +23,7 @@ class UnstructuredTextExtractor(BaseProcessor):
     parallel = "process"
     operates_on = MetaInfo
 
-    def __init__(self, strategy="auto", languages=('eng',), min_text_len=100, batch_size=16, n_proc=8):
+    def __init__(self, strategy="auto", languages=('eng',), min_text_len=20, batch_size=16, n_proc=8):
         '''
         strategy, languages - passed to unstructured partition_pdf
         min_text_len - text elements smaller then this size will be dropped

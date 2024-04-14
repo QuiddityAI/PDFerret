@@ -1,9 +1,10 @@
 from abc import ABC, abstractmethod
-from typing import BinaryIO, Dict, get_args
+from typing import Any, BinaryIO, Dict, get_args
 import concurrent.futures
+import traceback
 from .utils.utils import split_every
 from .datamodels import PDFDoc, PDFChunk, MetaInfo, PDFFile
-import logging
+from .logging import logger
 
 engines = {"thread": concurrent.futures.ThreadPoolExecutor,
            "process": concurrent.futures.ProcessPoolExecutor}
@@ -21,10 +22,10 @@ class Parallelizable(ABC):
         self.batch_size = batch_size
 
     @abstractmethod
-    def _process_single(self, pdf: PDFFile):
+    def _process_single(self, pdf: Any):
         pass
 
-    def _process_batch(self, X: Dict[str, PDFFile]):
+    def _process_batch(self, X: Dict[str, Any]):
         parsed = {}
         if not self.parallel:
             parsed = self._process_serial(X)
@@ -36,19 +37,20 @@ class Parallelizable(ABC):
         return parsed
 
     def _process_serial(self,
-                              pdfs: Dict[str, PDFFile]):
+                              pdfs: Dict[str, Any]):
         parsed_batch = {}
         for _id, pdf in pdfs.items():
             try:
                 ext = self._process_single(pdf)
                 parsed_batch[_id] = ext
             except Exception as e:
-                logging.warning(f"{_id} failed: {repr(e)}")
+                tback = traceback.format_exception(e)
+                logger.exception(f"{_id} failed: {repr(e)}, \n {tback[0]}")
 
         return parsed_batch
 
     def _process_batch_parallel(self,
-                                pdfs: Dict[str, PDFFile]):
+                                pdfs: Dict[str, Any]):
         parsed_batch = {}
         Engine = engines[self.parallel]
         with Engine(max_workers=self.n_proc) as executor:
@@ -59,8 +61,9 @@ class Parallelizable(ABC):
                 results.append(r)
 
         for r in concurrent.futures.as_completed(results):
-            if r.exception():
-                logging.warning(f"{r._id} failed: {repr(r.exception())}")
+            if exc:=r.exception():
+                tback = traceback.format_exception(exc)
+                logger.exception(f"{r._id} failed: {repr(exc)}\n {tback[0]}")
                 continue
             parsed = r.result()
             parsed_batch[r._id] = parsed

@@ -1,6 +1,8 @@
+import io
 from typing import BinaryIO, List, Union
 
 import numpy as np
+from pypdf import PdfReader, PdfWriter
 from .. import scipdf
 from ..base import BaseProcessor
 from ..datamodels import MetaInfo, PDFChunk, PDFDoc
@@ -29,13 +31,14 @@ def combine_bboxes(coords):
 
 
 class GROBIDTextExtractor(BaseProcessor):
-    parallel = "thread"
+    parallel = False  # "thread"
     operates_on = MetaInfo
 
-    def __init__(self, extract_meta=False, grobid_url="http://localhost:8070", batch_size=16, n_proc=8):
+    def __init__(self, extract_meta=False, max_pages=30, grobid_url="http://localhost:8070", batch_size=16, n_proc=8):
         super().__init__(n_proc=n_proc, batch_size=batch_size)
         self.grobid_url = grobid_url
         self.extract_meta = extract_meta
+        self.max_pages = max_pages
 
     def _extract_chunks(self, parsed) -> List[PDFChunk]:
         chunks = []
@@ -76,11 +79,30 @@ class GROBIDTextExtractor(BaseProcessor):
 
     def process_single(self, meta: MetaInfo) -> PDFDoc:
         pdf = meta.file_features.file
-        parsed = scipdf.parse_pdf_to_dict(pdf, grobid_url=self.grobid_url)
+        # this will work for both filepath and BinaryIO
+        if meta.npages > self.max_pages:
+            reader = PdfReader(meta.file_features.file)
+            buff = io.BytesIO()
+            writer = PdfWriter()
+            for i in range(self.max_pages):
+                writer.add_page(reader.pages[i])
+            writer.write(buff)
+            parsed = scipdf.parse_pdf_to_dict(
+                buff.getvalue(), grobid_url=self.grobid_url)
+
+        # special case for npages < max_pages and being BinaryIO
+        # unfortuntely there's no good way to check if something
+        # is file-like object
+        elif not isinstance(pdf, str):
+            parsed = scipdf.parse_pdf_to_dict(
+                pdf.getvalue(), grobid_url=self.grobid_url)
+        else:
+            parsed = scipdf.parse_pdf_to_dict(pdf, grobid_url=self.grobid_url)
         if self.extract_meta:
+            meta.doi = parsed['doi']
             meta.title = parsed['title']
             meta.authors = parsed['authors']
-            meta.pub_date = parsed['pub_data']
+            meta.pub_date = parsed['pub_date']
             meta.abstract = parsed['abstract']
 
         chunks = self._extract_chunks(parsed)

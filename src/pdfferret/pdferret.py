@@ -1,11 +1,13 @@
 import glob
-from .metainfo_extractor import GROBIDMetaExtractor
-from .text_extrators.unstructured import UnstructuredTextExtractor
-from .text_extrators.grobid import GROBIDTextExtractor
-from typing import BinaryIO, Dict, Union
-from .datamodels import PDFDoc, MetaInfo, PDFFile
+import uuid
+from typing import BinaryIO, Dict, List, Union
+
 from .chunking import StandardChunker
+from .datamodels import MetaInfo, PDFDoc, PDFFile
 from .file_info_extractor import FileInfoExtractor
+from .metainfo_extractor import GROBIDMetaExtractor
+from .text_extrators.grobid import GROBIDTextExtractor
+from .text_extrators.unstructured import UnstructuredTextExtractor
 
 meta_extractors = {"grobid": GROBIDMetaExtractor}
 text_extractors = {"grobid": GROBIDTextExtractor,
@@ -22,8 +24,10 @@ class PDFerret():
 
         TODO: Implement detection of bad OCR quality and automatic re-OCR
         TODO: (maybe) use OpenAI API to detect bad OCR / post-improve OCR quality
-        TODO: Handle non-English documents
-        TODO: Handle long texts (like theses)
+        TODO: Limit max pages to process
+        TODO: position-aware chunk combining
+        TODO: allow running different text extractor if necessary (e.g. hi_res unstructured for PDF without text)
+
 
         Args:
             meta_extractor (str or Extractor instance): class performing metadata extraction. Defaults to "grobid".
@@ -45,7 +49,18 @@ class PDFerret():
 
         self.fileinfoextractor = FileInfoExtractor()
 
-    def extract_batch(self, pdfs: Dict[str, PDFFile]) -> Dict[str, PDFDoc]:
+    def extract_batch(self, pdfs: List[PDFFile]) -> List[PDFDoc]:
+        # assign unique ids to every item
+        if isinstance(pdfs[0], str):
+            pdfs = {v: v for v in pdfs}
+
+        elif isinstance(pdfs[0], BinaryIO):
+            pdfs = {uuid.uuid4(): v for v in pdfs}
+
+        else:
+            ValueError(
+                "Argument to extract_batch must be a list of file paths of BinaryIO objects")
+
         # firstly, heuristically detect if pdf is scanned and its language:
         metainfo = self.fileinfoextractor.process_batch(pdfs)
 
@@ -56,7 +71,9 @@ class PDFerret():
             docs = self.text_extractor.process_batch(metainfo)
             if self.chunker:
                 docs = self.chunker.process_batch(docs)
-            return docs
+            sorted_docs = [docs[key] if key in docs else PDFDoc()
+                           for key in pdfs]
+            return sorted_docs
         # otherwise extract meta and text separately then combine
         # note that metaextractors update the metainfo, while
         # doc extractors convert it to PDFDoc combining metainfo with chunks
@@ -64,4 +81,6 @@ class PDFerret():
         docs = self.text_extractor.process_batch(metainfo)
         if self.chunker:
             docs = self.chunker.process_batch(docs)
-        return docs
+
+        sorted_docs = [docs[key] if key in docs else PDFDoc() for key in pdfs]
+        return sorted_docs

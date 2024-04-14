@@ -17,21 +17,22 @@ class PDFChunk:
 @dataclass
 class FileFeatures:
     file: PDFFile = None
-    npages: int = None
     is_scanned: bool = None
 
 
 @dataclass
 class MetaInfo:
+    doi: str = ""
     title: str = ""
     abstract: str = ""
     authors: List[str] = field(default_factory=list)
     pub_date: str = ""
     language: str = ""
     file_features: FileFeatures = None
+    npages: int = None
 
 
 @dataclass
 class PDFDoc:
-    metainfo: MetaInfo
-    chunks: List[PDFChunk]
+    metainfo: MetaInfo = field(default_factory=MetaInfo)
+    chunks: List[PDFChunk] = field(default_factory=lambda: [PDFChunk()])

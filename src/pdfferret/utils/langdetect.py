@@ -11,7 +11,10 @@ detector = LanguageDetectorBuilder.from_languages(*languages).build()
 
 def detect_language(s: str):
     lang = detector.detect_language_of(s)
-    return lang.iso_code_639_1.name.lower()
+    if lang:
+        return lang.iso_code_639_1.name.lower()
+    else: # if detection is unsuccessful, assume it's english
+        return "en"
 
 class LanguageDetector(BaseProcessor):
     parallel = False
