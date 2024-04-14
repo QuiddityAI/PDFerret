@@ -23,4 +23,4 @@ extracted = extractor.extract_batch(list_of_pdf_files)
 
 # Example
 
-see `demo_pdferret.ipynb" for example of usage.
+see `demo_pdferret.ipynb` for example of usage.
