@@ -5,4 +5,4 @@ pypdf
 pyspellchecker
 requests
 unstructured[pdf]
-lingua
+lingua-language-detector
