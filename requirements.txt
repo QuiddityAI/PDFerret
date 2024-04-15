@@ -6,3 +6,4 @@ pyspellchecker
 requests
 unstructured[pdf]
 lingua-language-detector
+ocrmypdf
