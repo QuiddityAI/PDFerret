@@ -5,7 +5,8 @@ pdferret - an aggregator for multiple PDF information extractors
 # Installation
 
 1. To install the package, use `pip install .` in the source folder, which will install package with all dependencies
-2. PDFerret relies on GROBID for extracting some parts of the text. Run `docker compose -f docker-compose-grobid.yml up` to run GROBID server. `docker-compose-grobid-big.yml` contains GROBID with ML models, thus produces much bigger image and significantly slower, while improvements are not so clear.
+2. On minimal Ubuntu systems (e.g. in a python Docker image), `sudo apt install libgl1` might be needed for opencv
+3. PDFerret relies on GROBID for extracting some parts of the text. Run `docker compose -f docker-compose-grobid.yml up` to run GROBID server. `docker-compose-grobid-big.yml` contains GROBID with ML models, thus produces much bigger image and significantly slower, while improvements are not so clear.
 
 # Usage
 
