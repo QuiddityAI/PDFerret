@@ -3,7 +3,7 @@ from typing import Any, BinaryIO, Dict, get_args
 import concurrent.futures
 import traceback
 from .utils.utils import split_every
-from .datamodels import PDFDoc, PDFChunk, MetaInfo, PDFFile
+from .datamodels import PDFDoc, PDFChunk, MetaInfo, PDFFile, PDFError
 from .logging import logger
 
 engines = {"thread": concurrent.futures.ThreadPoolExecutor,
@@ -34,7 +34,10 @@ class Parallelizable(ABC):
                 batch = {k: X[k] for k in batch_keys}
                 p = self._process_batch_parallel(batch)    
                 parsed.update(p)
-        return parsed
+        
+        failed = {k:v for k,v in parsed.items() if isinstance(v, PDFError)}
+        parsed = {k:v for k,v in parsed.items() if not isinstance(v, PDFError)}
+        return parsed, failed
 
     def _process_serial(self,
                               pdfs: Dict[str, Any]):
@@ -46,7 +49,7 @@ class Parallelizable(ABC):
             except Exception as e:
                 tback = traceback.format_exception(e)
                 logger.exception(f"{_id} failed: {repr(e)}, \n {tback[0]}")
-
+                parsed_batch[_id] = PDFError(repr(e), traceback=tback, file=_id)
         return parsed_batch
 
     def _process_batch_parallel(self,
@@ -64,6 +67,7 @@ class Parallelizable(ABC):
             if exc:=r.exception():
                 tback = traceback.format_exception(exc)
                 logger.exception(f"{r._id} failed: {repr(exc)}\n {tback[0]}")
+                parsed_batch[r._id] = PDFError(repr(exc), traceback=tback, file=r._id)
                 continue
             parsed = r.result()
             parsed_batch[r._id] = parsed
@@ -88,9 +92,9 @@ class BaseProcessor(Parallelizable):
             raise TypeError(f"This class operates on {self.operates_on} type but {type(inp)} is given")
     
     def process_batch(self, X):
-        return super()._process_batch(X)
+        return self._process_batch(X)
     
     @abstractmethod
-    def process_single(self, X: PDFDoc | PDFChunk | MetaInfo | PDFFile) -> PDFDoc | PDFChunk | MetaInfo:
+    def process_single(self, X: PDFDoc | MetaInfo | PDFFile) -> PDFDoc | PDFChunk | MetaInfo:
         pass
     

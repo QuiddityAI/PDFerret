@@ -359,6 +359,18 @@ def parse_formulas(article):
     return formulas_list
 
 
+def parse_extra_text(article):
+    '''
+    extract all text which is not captured by other functions, such as figure captions and tables:
+
+    '''
+    figs = article.find_all("figure")
+    texts = []
+    for fig in figs:
+        texts.append(" ".join([s.text for s in fig.find_all("s")]))
+    return texts
+
+
 def convert_article_soup_to_dict(article, as_list: bool = False):
     """
     Function to convert BeautifulSoup to JSON format
@@ -400,6 +412,7 @@ def convert_article_soup_to_dict(article, as_list: bool = False):
         article_dict["pub_date"] = parse_date(article)
         article_dict["abstract"] = parse_abstract(article)
         article_dict["sections"] = parse_sections(article, as_list=as_list)
+        article_dict['extra_text'] = parse_extra_text(article)
         article_dict["references"] = parse_references(article)
         article_dict["figures"] = parse_figure_caption(article)
         article_dict["formulas"] = parse_formulas(article)

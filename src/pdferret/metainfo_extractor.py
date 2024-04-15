@@ -1,5 +1,5 @@
 import io
-
+import os
 from pypdf import PdfReader, PdfWriter
 
 from . import scipdf
@@ -11,9 +11,14 @@ class GROBIDMetaExtractor(BaseProcessor):
     parallel = "thread"
     operates_on = MetaInfo
 
-    def __init__(self, grobid_url="http://localhost:8070", batch_size=16, n_proc=8):
+    def __init__(self, grobid_url=None, batch_size=16, n_proc=8):
         super().__init__(n_proc=n_proc, batch_size=batch_size)
-        self.grobid_url = grobid_url
+        if grobid_url:
+            self.grobid_url = grobid_url
+        elif url := os.environ.get("PDFERRET_GROBID_URL"):
+            self.grobid_url = url
+        else:
+            self.grobid_url = "http://localhost:8070"
 
     def process_single(self, meta: MetaInfo) -> MetaInfo:
         reader = PdfReader(meta.file_features.file)

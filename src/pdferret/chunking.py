@@ -11,7 +11,7 @@ from .cleaning import clean_chunk
 
 LIMITS_SOFT = 700, 1200
 LIMITS_HARD = 400, 1600
-MIN_CHUNK_LEN = 20
+MIN_CHUNK_LEN = 50
 SPELLCHECK_SCORE_THRESHOLD = 0.5
 
 
@@ -212,11 +212,13 @@ class StandardChunker(BaseProcessor):
         # Second pass: remove bad chunks
         filtered_chunks = [
             ch for ch in shorter_chunks if chunk_filter(ch.text, lang=doc.metainfo.language)]
-
+        # remove locked chunks, i.e. those which can't be concatenated with others
+        non_locked_chunks = [ch for ch in filtered_chunks if not ch.locked]
+        locked_chunks = [ch for ch in filtered_chunks if ch.locked]
         # third pass: combine short chunks into longer ones
         normal_len_chunks = concatenate_chunks(
-            filtered_chunks, LIMITS_SOFT[0], LIMITS_HARD[1])
-
+            non_locked_chunks, LIMITS_SOFT[0], LIMITS_HARD[1])
+        normal_len_chunks += locked_chunks
         # fourth pass: clean the text
         if self.clean_text:
             final_chunks = []

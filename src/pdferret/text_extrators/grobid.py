@@ -1,4 +1,5 @@
 import io
+import os
 from typing import BinaryIO, List, Union
 
 import numpy as np
@@ -34,9 +35,14 @@ class GROBIDTextExtractor(BaseProcessor):
     parallel = False  # "thread"
     operates_on = MetaInfo
 
-    def __init__(self, extract_meta=False, max_pages=30, grobid_url="http://localhost:8070", batch_size=16, n_proc=8):
+    def __init__(self, extract_meta=False, max_pages=30, grobid_url=None, batch_size=16, n_proc=8):
         super().__init__(n_proc=n_proc, batch_size=batch_size)
-        self.grobid_url = grobid_url
+        if grobid_url:
+            self.grobid_url = grobid_url
+        elif url := os.environ.get("PDFERRET_GROBID_URL"):
+            self.grobid_url = url
+        else:
+            self.grobid_url = "http://localhost:8070"
         self.extract_meta = extract_meta
         self.max_pages = max_pages
 
@@ -77,6 +83,13 @@ class GROBIDTextExtractor(BaseProcessor):
                 chunks.append(PDFChunk(**chunk))
         return chunks
 
+    def _extract_extra_text(self, parsed):
+        chunks = []
+        for text in parsed['extra_text']:
+            ch = PDFChunk(text=text, locked=True)
+            chunks.append(ch)
+        return chunks
+
     def process_single(self, meta: MetaInfo) -> PDFDoc:
         pdf = meta.file_features.file
         # this will work for both filepath and BinaryIO
@@ -106,4 +119,5 @@ class GROBIDTextExtractor(BaseProcessor):
             meta.abstract = parsed['abstract']
 
         chunks = self._extract_chunks(parsed)
+        chunks += self._extract_extra_text(parsed)
         return PDFDoc(meta, chunks)

@@ -1,8 +1,12 @@
+from typing import Any, Dict
 import numpy as np
+
+from ..utils.utils import split_every
 from ..base import BaseProcessor
 from ..datamodels import PDFChunk, MetaInfo, PDFDoc
 from unstructured.partition.pdf import partition_pdf
 from unstructured.documents import elements as doc_elements
+from ..logging import logger
 
 
 def extract_bbox(coords):
@@ -33,14 +37,46 @@ class UnstructuredTextExtractor(BaseProcessor):
         self.languages = list(languages)
         self.min_text_len = min_text_len
 
+    # def _process_serial(self,
+    #                     pdfs: Dict[str, Any]):
+    #     parsed_batch = {}
+    #     for _id, pdf in pdfs.items():
+    #         ext = self._process_single(pdf)
+    #         parsed_batch[_id] = ext
+
+    #     return parsed_batch
+
+    def _process_batch(self, X: Dict[str, MetaInfo]):
+        parsed = {}
+        scanned = {k: v for k, v in X.items()
+                   if v.file_features.is_scanned}
+        not_scanned = {k: v for k, v in X.items()
+                       if not v.file_features.is_scanned}
+        logger.warn(
+            f"Processing {len(scanned)} scanned, {len(not_scanned)} native PDFs")
+        # not scanned documents can be processed in parallel
+        for batch_keys in split_every(not_scanned, self.batch_size):
+            batch = {k: X[k] for k in batch_keys}
+            p = self._process_batch_parallel(batch)
+            parsed.update(p)
+        print("finished parallel part")
+        # but scanned ones only serially (it's already parallelized under the hood)
+
+        p = self._process_serial(scanned)
+        parsed.update(p)
+        return parsed
+
     def process_single(self, meta: MetaInfo) -> PDFDoc:
         pdf = meta.file_features.file
         if isinstance(pdf, str):
             input_kwargs = dict(filename=pdf)
         else:
             input_kwargs = dict(file=pdf)
-
-        elements = partition_pdf(**input_kwargs, strategy=self.strategy,
+        # if pdf is scanned use hi_res strategy, best so far
+        input_kwargs['strategy'] = self.strategy
+        if meta.file_features.is_scanned:
+            input_kwargs['strategy'] = 'hi_res'
+        elements = partition_pdf(**input_kwargs,
                                  languages=self.languages)
 
         chunks = []
@@ -64,3 +100,7 @@ class UnstructuredTextExtractor(BaseProcessor):
                              coordinates=[(xmin, ymin), (xmax, ymax)])
             chunks.append(chunk)
         return PDFDoc(metainfo=meta, chunks=chunks)
+
+
+class UnstructuredTextExtractorSerial(UnstructuredTextExtractor):
+    parallel = None

@@ -5,6 +5,13 @@ PDFFile: TypeAlias = Union[str, BinaryIO]
 
 
 @dataclass
+class PDFError:
+    exc: str = ""
+    traceback: str = ""
+    file: str = ""
+
+
+@dataclass
 class PDFChunk:
     page: int = None
     coordinates: List[Tuple[int]] = None
@@ -12,10 +19,13 @@ class PDFChunk:
     prefix: str = ""
     text: str = ""
     suffix: str = ""
+    locked: bool = False
+    # true if joining of this chunk with others is forbidden, e.g. fro figure captions
 
 
 @dataclass
 class FileFeatures:
+    filename: str = ""
     file: PDFFile = None
     is_scanned: bool = None
 

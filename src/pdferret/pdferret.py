@@ -49,7 +49,13 @@ class PDFerret():
 
         self.fileinfoextractor = FileInfoExtractor()
 
+    def _sort_results(self, docs, failed_all, pdfs):
+        sorted_docs = [docs[key] for key in pdfs if key in docs]
+        sorted_failed = [failed_all[key] for key in pdfs if key in failed_all]
+        return sorted_docs, sorted_failed
+
     def extract_batch(self, pdfs: List[PDFFile]) -> List[PDFDoc]:
+        failed_all = {}
         # assign unique ids to every item
         if isinstance(pdfs[0], str):
             pdfs = {v: v for v in pdfs}
@@ -62,25 +68,31 @@ class PDFerret():
                 "Argument to extract_batch must be a list of file paths of BinaryIO objects")
 
         # firstly, heuristically detect if pdf is scanned and its language:
-        metainfo = self.fileinfoextractor.process_batch(pdfs)
+        metainfo, failed = self.fileinfoextractor.process_batch(pdfs)
+        failed_all.update(failed)
 
         # if grobid is used for both text and meta extraction run it just once
         if (isinstance(self.meta_extractor, meta_extractors['grobid']) and
                 isinstance(self.text_extractor, text_extractors['grobid'])):
             self.text_extractor.extract_meta = True
-            docs = self.text_extractor.process_batch(metainfo)
+            docs, failed = self.text_extractor.process_batch(metainfo)
+            failed_all.update(failed)
+
             if self.chunker:
-                docs = self.chunker.process_batch(docs)
-            sorted_docs = [docs[key] if key in docs else PDFDoc()
-                           for key in pdfs]
-            return sorted_docs
+                docs, failed = self.chunker.process_batch(docs)
+                failed_all.update(failed)
+
+            return self._sort_results(docs, failed_all, pdfs)
+
         # otherwise extract meta and text separately then combine
         # note that metaextractors update the metainfo, while
         # doc extractors convert it to PDFDoc combining metainfo with chunks
-        metainfo = self.meta_extractor.process_batch(metainfo)
-        docs = self.text_extractor.process_batch(metainfo)
+        metainfo, failed = self.meta_extractor.process_batch(metainfo)
+        failed_all.update(failed)
+        docs, failed = self.text_extractor.process_batch(metainfo)
+        failed_all.update(failed)
         if self.chunker:
-            docs = self.chunker.process_batch(docs)
+            docs, failed = self.chunker.process_batch(docs)
+            failed_all.update(failed)
 
-        sorted_docs = [docs[key] if key in docs else PDFDoc() for key in pdfs]
-        return sorted_docs
+        return self._sort_results(docs, failed_all, pdfs)
