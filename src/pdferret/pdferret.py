@@ -3,7 +3,7 @@ import uuid
 from typing import BinaryIO, Dict, List, Union
 
 from .chunking import StandardChunker
-from .datamodels import MetaInfo, PDFDoc, PDFFile
+from .datamodels import MetaInfo, PDFDoc, PDFFile, FileFeatures, PDFError
 from .file_info_extractor import FileInfoExtractor
 from .metainfo_extractor import GROBIDMetaExtractor
 from .text_extrators.grobid import GROBIDTextExtractor
@@ -50,11 +50,15 @@ class PDFerret():
         self.fileinfoextractor = FileInfoExtractor()
 
     def _sort_results(self, docs, failed_all, pdfs):
-        sorted_docs = [docs[key] for key in pdfs if key in docs]
+        # docs: extracted data, failed_all: dictionary containing all error messages
+        # pdfs: original list of pdfs
+        sorted_docs = [docs[key] if key in docs
+                       else PDFDoc(MetaInfo(file_features=FileFeatures(filename=pdfs[key])))
+                       for key in pdfs]
         sorted_failed = [failed_all[key] for key in pdfs if key in failed_all]
         return sorted_docs, sorted_failed
 
-    def extract_batch(self, pdfs: List[PDFFile]) -> List[PDFDoc]:
+    def extract_batch(self, pdfs: List[PDFFile]) -> tuple[List[PDFDoc], List[PDFError]]:
         failed_all = {}
         # assign unique ids to every item
         if isinstance(pdfs[0], str):
