@@ -21,7 +21,6 @@ class FileInfoExtractor(BaseProcessor):
         is_scan = is_scanned(reader)
         text = "".join([reader.pages[i].extract_text()
                         for i in range(min(3, len(reader.pages)))])
-        print(text, len(text))
         if len(text) < 50:  # there might be some kind of noise but 
                             # 3 pages should definitely contain more then 50 chars
             logger.warning("PDF contains no text")
