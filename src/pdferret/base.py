@@ -5,6 +5,7 @@ import traceback
 from .utils.utils import split_every
 from .datamodels import PDFDoc, PDFChunk, MetaInfo, PDFFile, PDFError
 from .logging import logger
+from .config import NPROC, BATCH_SIZE
 
 engines = {"thread": concurrent.futures.ThreadPoolExecutor,
            "process": concurrent.futures.ProcessPoolExecutor}
@@ -18,8 +19,8 @@ class Parallelizable(ABC):
     parallel = False
 
     def __init__(self, n_proc=None, batch_size=None) -> None:
-        self.n_proc = n_proc
-        self.batch_size = batch_size
+        self.n_proc = n_proc if n_proc else NPROC
+        self.batch_size = batch_size if batch_size else BATCH_SIZE
 
     @abstractmethod
     def _process_single(self, pdf: Any):

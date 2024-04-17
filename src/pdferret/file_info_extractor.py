@@ -22,7 +22,7 @@ class FileInfoExtractor(BaseProcessor):
         if not text:
             logger.warning("PDF contains no text")
             out = io.BytesIO()
-            ocr(input_file=pdf, output_file=out, redo_ocr=True)
+            ocr(input_file=pdf, output_file=out, force_ocr=True)
             reader = PdfReader(out)
             text = reader.pages[0].extract_text()
             pdf = out
