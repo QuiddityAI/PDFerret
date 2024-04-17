@@ -33,7 +33,7 @@ def combine_bboxes(coords):
 
 
 class GROBIDTextExtractor(BaseProcessor):
-    parallel = False  # "thread"
+    parallel = "thread"
     operates_on = MetaInfo
 
     def __init__(self, extract_meta=False, max_pages=30, grobid_url=None, batch_size=None, n_proc=None):

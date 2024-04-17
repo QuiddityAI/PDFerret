@@ -14,6 +14,7 @@ Following env variables are supported to configure PDFerret:
 - `PDFERRET_GROBID_URL` - sets url of GROBID, used by extractors
 - `PDFERRET_NPROC` - sets number of processors used for parallel processing for both metainfo and text extractors
 - `PDFERRET_BATCH_SIZE` - sets batch size for parallel processing, i.e. how many items are processed between fork and join. Must be at least `PDFERRET_NPROC`, but shouldn't have strong influence on performance otherwise
+- `PDFERRET_MAX_PAGES` - all pdfs will be cropped to first MAX_PAGES
 
 
 # Usage

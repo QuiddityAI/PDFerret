@@ -1,5 +1,5 @@
 from typing import BinaryIO, Union
-from pypdf import PdfReader
+from pypdf import PdfReader, PdfWriter
 from ocrmypdf import ocr
 import io
 import uuid
@@ -8,6 +8,7 @@ from .datamodels import MetaInfo, FileFeatures, PDFFile
 from .utils.scan_detector import is_scanned
 from .utils.langdetect import detect_language
 from .logging import logger
+from .config import MAX_PAGES
 
 
 class FileInfoExtractor(BaseProcessor):
@@ -18,13 +19,26 @@ class FileInfoExtractor(BaseProcessor):
         fname = pdf if isinstance(pdf, str) else uuid.uuid4()
         reader = PdfReader(pdf)
         is_scan = is_scanned(reader)
-        text = reader.pages[0].extract_text()
-        if not text:
+        text = "".join([reader.pages[i].extract_text()
+                        for i in range(min(3, len(reader.pages)))])
+        print(text, len(text))
+        if len(text) < 50:  # there might be some kind of noise but 
+                            # 3 pages should definitely contain more then 50 chars
             logger.warning("PDF contains no text")
+            if len(reader.pages) > MAX_PAGES:
+                buff = io.BytesIO()
+                writer = PdfWriter()
+                for i in range(MAX_PAGES):
+                    writer.add_page(reader.pages[i])
+                writer.write(buff)
+                buff.seek(0)
+                pdf = buff
+
             out = io.BytesIO()
             ocr(input_file=pdf, output_file=out, force_ocr=True)
             reader = PdfReader(out)
-            text = reader.pages[0].extract_text()
+            text = " ".join([reader.pages[i].extract_text()
+                             for i in range(min(3, len(reader.pages)))])
             pdf = out
         lang = detect_language(text)
         ffeatures = FileFeatures(file=pdf, is_scanned=is_scan, filename=fname)
