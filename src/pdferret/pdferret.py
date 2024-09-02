@@ -53,7 +53,8 @@ class PDFerret():
         # docs: extracted data, failed_all: dictionary containing all error messages
         # pdfs: original list of pdfs
         sorted_docs = [docs[key] if key in docs
-                       else PDFDoc(MetaInfo(file_features=FileFeatures(filename=pdfs[key])))
+                       else PDFDoc(MetaInfo(file_features=FileFeatures(filename=pdfs[key] 
+                                                  if isinstance(pdfs[key], str) else None)))
                        for key in pdfs]
         sorted_failed = [failed_all[key] for key in pdfs if key in failed_all]
         return sorted_docs, sorted_failed
@@ -63,13 +64,19 @@ class PDFerret():
         # assign unique ids to every item
         if isinstance(pdfs[0], str):
             pdfs = {v: v for v in pdfs}
-
-        elif isinstance(pdfs[0], BinaryIO):
+        elif isinstance(pdfs[0], bytes):
             pdfs = {uuid.uuid4(): v for v in pdfs}
+        # use duck typing to detect if pdf is file-like object
+        # assign UUID as identifier instead of filename
+        # and load to memory if as file-like objects can't be shared
+        # between processes when multiprocessing is used
+        # TODO: chech file size
+        elif "read" in dir(pdfs[0]):
+            pdfs = {uuid.uuid4(): v.read() for v in pdfs}
 
         else:
             ValueError(
-                "Argument to extract_batch must be a list of file paths of BinaryIO objects")
+                "Argument to extract_batch must be a list of file paths of file-like objects")
 
         # firstly, heuristically detect if pdf is scanned and its language:
         metainfo, failed = self.fileinfoextractor.process_batch(pdfs)

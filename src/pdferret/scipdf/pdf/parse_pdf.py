@@ -135,7 +135,7 @@ def parse_authors(article):
             authors.append(firstname + " " + middlename + " " + lastname)
         else:
             authors.append(firstname + " " + lastname)
-    authors = "; ".join(authors)
+    # authors = "; ".join(authors)
     return authors
 
 
@@ -289,7 +289,7 @@ def parse_references(article):
                                        middlename + " " + lastname)
                     else:
                         authors.append(firstname + " " + lastname)
-                authors = "; ".join(authors)
+                # authors = "; ".join(authors)
             reference_list.append(
                 {"ref_id": ref_id, "title": title, "journal": journal,
                     "year": year, "authors": authors}

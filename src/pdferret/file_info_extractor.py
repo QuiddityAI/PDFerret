@@ -17,7 +17,7 @@ class FileInfoExtractor(BaseProcessor):
 
     def process_single(self, pdf: PDFFile) -> MetaInfo:
         fname = pdf if isinstance(pdf, str) else uuid.uuid4()
-        reader = PdfReader(pdf)
+        reader = PdfReader(io.BytesIO(pdf) if isinstance(pdf, bytes) else pdf)
         is_scan = is_scanned(reader)
         text = "".join([reader.pages[i].extract_text()
                         for i in range(min(3, len(reader.pages)))])

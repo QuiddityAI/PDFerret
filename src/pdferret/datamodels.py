@@ -1,20 +1,20 @@
 from dataclasses import dataclass, field
 from typing import List, Tuple, Union, BinaryIO, TypeAlias
 
-PDFFile: TypeAlias = Union[str, BinaryIO]
+PDFFile: TypeAlias = Union[str, BinaryIO, bytes]
 
 
 @dataclass
 class PDFError:
     exc: str = ""
-    traceback: str = ""
+    traceback: Union[str, List[str]] = ""
     file: str = ""
 
 
 @dataclass
 class PDFChunk:
     page: int = None
-    coordinates: List[Tuple[int]] = None
+    coordinates: List[List[float]] = None
     section: str = ""
     prefix: str = ""
     text: str = ""

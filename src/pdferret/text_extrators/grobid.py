@@ -107,7 +107,7 @@ class GROBIDTextExtractor(BaseProcessor):
         # is file-like object
         elif not isinstance(pdf, str):
             parsed = scipdf.parse_pdf_to_dict(
-                pdf.getvalue(), grobid_url=self.grobid_url)
+                pdf if isinstance(pdf, bytes) else pdf.getvalue(), grobid_url=self.grobid_url)
         else:
             parsed = scipdf.parse_pdf_to_dict(pdf, grobid_url=self.grobid_url)
         if self.extract_meta:

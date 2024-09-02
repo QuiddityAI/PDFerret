@@ -7,3 +7,5 @@ requests
 unstructured[pdf]
 lingua-language-detector
 ocrmypdf
+fastapi[standard]
+python-multipart
