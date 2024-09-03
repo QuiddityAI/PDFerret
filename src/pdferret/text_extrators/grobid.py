@@ -4,10 +4,11 @@ from typing import BinaryIO, List, Union
 
 import numpy as np
 from pypdf import PdfReader, PdfWriter
+
 from .. import scipdf
 from ..base import BaseProcessor
-from ..datamodels import MetaInfo, PDFChunk, PDFDoc
 from ..config import GROBID_URL
+from ..datamodels import MetaInfo, PDFChunk, PDFDoc
 
 
 def most_common(lst):

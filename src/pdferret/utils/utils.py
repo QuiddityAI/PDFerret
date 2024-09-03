@@ -1,5 +1,5 @@
-from itertools import islice
 import re
+from itertools import islice
 
 
 def split_every(iterable, n):
@@ -11,6 +11,6 @@ def split_every(iterable, n):
 
 
 def remove_hyphenation(text):
-    pattern = r'(\w+)\-\s*\n\s*(\w+)'
-    cleaned_text = re.sub(pattern, r'\1\2', text)
+    pattern = r"(\w+)\-\s*\n\s*(\w+)"
+    cleaned_text = re.sub(pattern, r"\1\2", text)
     return cleaned_text.replace("\n", "")

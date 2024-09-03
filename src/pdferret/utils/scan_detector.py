@@ -1,18 +1,17 @@
-
-from pypdf import PdfReader
 import numpy as np
+from pypdf import PdfReader
 
 
 def gen_dict_extract(key, var):
-    if hasattr(var, 'items'):
+    if hasattr(var, "items"):
         for k, v in var.items():
             v = v.get_object()
             if k == key:
                 for k2, v2 in v.items():
                     v2 = v2.get_object()
-                    if v2.get('/Subtype') == '/Image':
+                    if v2.get("/Subtype") == "/Image":
                         yield v2
-            if hasattr(v, 'items'):
+            if hasattr(v, "items"):
                 for result in gen_dict_extract(key, v):
                     yield result
 
@@ -23,8 +22,8 @@ def extract_img_sizes(reader):
     sizes = []
     for page in reader.pages:
         obj = page.get_object()
-        for val_obj in gen_dict_extract("/XObject", obj['/Resources']):
-            h, w = val_obj['/Height'], val_obj['/Width']
+        for val_obj in gen_dict_extract("/XObject", obj["/Resources"]):
+            h, w = val_obj["/Height"], val_obj["/Width"]
             sizes.append((h / page.mediabox.height, w / page.mediabox.width))
     return np.array(sizes)
 

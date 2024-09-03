@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import List, Tuple, Union, BinaryIO, TypeAlias
+from typing import BinaryIO, List, Tuple, TypeAlias, Union
 
 PDFFile: TypeAlias = Union[str, BinaryIO, bytes]
 

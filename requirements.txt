@@ -1,6 +1,6 @@
 nltk
 numpy
-pandas 
+pandas
 pypdf
 pyspellchecker
 requests

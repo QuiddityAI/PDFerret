@@ -1,20 +1,23 @@
 from typing import BinaryIO, Union
+
 from lingua import Language, LanguageDetectorBuilder
 
-from ..datamodels import MetaInfo, PDFDoc
 from ..base import BaseProcessor
+from ..datamodels import MetaInfo, PDFDoc
 
 languages = [Language.ENGLISH, Language.GERMAN, Language.FRENCH]
 
 lang_codes = [lang.iso_code_639_1.name.lower() for lang in languages]
 detector = LanguageDetectorBuilder.from_languages(*languages).build()
 
+
 def detect_language(s: str):
     lang = detector.detect_language_of(s)
     if lang:
         return lang.iso_code_639_1.name.lower()
-    else: # if detection is unsuccessful, assume it's english
+    else:  # if detection is unsuccessful, assume it's english
         return "en"
+
 
 class LanguageDetector(BaseProcessor):
     parallel = False
@@ -25,9 +28,7 @@ class LanguageDetector(BaseProcessor):
             lang = detector.detect_language_of(meta.abstract)
         elif meta.title:
             lang = detector.detect_language_of(meta.title)
-        else: # if not known, assume it's english
+        else:  # if not known, assume it's english
             lang = Language.ENGLISH
         meta.language = lang.iso_code_639_1.name.lower()
         return meta
-
-    

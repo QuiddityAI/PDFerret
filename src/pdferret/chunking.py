@@ -1,13 +1,13 @@
-import numpy as np
 from dataclasses import asdict
-from nltk.tokenize import sent_tokenize
 from string import punctuation
 
-from .datamodels import PDFDoc
-from .utils.metrics import spellcheck_score
-from .datamodels import PDFChunk
+import numpy as np
+from nltk.tokenize import sent_tokenize
+
 from .base import BaseProcessor
 from .cleaning import clean_chunk
+from .datamodels import PDFChunk, PDFDoc
+from .utils.metrics import spellcheck_score
 
 LIMITS_SOFT = 700, 1200
 LIMITS_HARD = 400, 1600
@@ -22,20 +22,19 @@ def partition_list(a, k):
         return [a]
     if k >= len(a):
         return [[x] for x in a]
-    partition_between = [(i+1)*len(a)//k for i in range(k-1)]
-    average_height = float(sum(a))/k
+    partition_between = [(i + 1) * len(a) // k for i in range(k - 1)]
+    average_height = float(sum(a)) / k
     best_score = None
     best_partitions = None
     count = 0
 
     while True:
-        starts = [0]+partition_between
-        ends = partition_between+[len(a)]
-        partitions = [a[starts[i]:ends[i]] for i in range(k)]
+        starts = [0] + partition_between
+        ends = partition_between + [len(a)]
+        partitions = [a[starts[i] : ends[i]] for i in range(k)]
         heights = list(map(sum, partitions))
 
-        abs_height_diffs = list(
-            map(lambda x: abs(average_height - x), heights))
+        abs_height_diffs = list(map(lambda x: abs(average_height - x), heights))
         worst_partition_index = abs_height_diffs.index(max(abs_height_diffs))
         worst_height_diff = average_height - heights[worst_partition_index]
 
@@ -51,10 +50,15 @@ def partition_list(a, k):
         count += 1
 
         move = -1 if worst_height_diff < 0 else 1
-        bound_to_move = 0 if worst_partition_index == 0\
-            else k-2 if worst_partition_index == k-1\
-            else worst_partition_index-1 if (worst_height_diff < 0) ^ (heights[worst_partition_index-1] > heights[worst_partition_index+1])\
+        bound_to_move = (
+            0
+            if worst_partition_index == 0
+            else k - 2
+            if worst_partition_index == k - 1
+            else worst_partition_index - 1
+            if (worst_height_diff < 0) ^ (heights[worst_partition_index - 1] > heights[worst_partition_index + 1])
             else worst_partition_index
+        )
         direction = -1 if bound_to_move < worst_partition_index else 1
         partition_between[bound_to_move] += move * direction
 
@@ -111,8 +115,7 @@ def split_coordinates(coordinates, ratios):
 
         block_end = ratio + block_start
 
-        c = [(xmin, ymin + block_start * height),
-             (xmax, ymin + (block_end - block_start) * height)]
+        c = [(xmin, ymin + block_start * height), (xmax, ymin + (block_end - block_start) * height)]
 
         coords.append(c)
         block_start = block_end - block_start
@@ -136,8 +139,7 @@ def combine_chunks(chunk, chunks):
         chunk.text += " " + new_chunk.text
         # only enlarge bbox if they're on the same page
         if chunk.page == new_chunk.page and chunk.coordinates:
-            chunk.coordinates = combine_coordinates(
-                chunk.coordinates, new_chunk.coordinates)
+            chunk.coordinates = combine_coordinates(chunk.coordinates, new_chunk.coordinates)
 
     return chunk
 
@@ -156,8 +158,7 @@ def combine_two_chunks(chunk1, chunk2):
     chunk.text = chunk1.text + " " + chunk2.text
     # only enlarge bbox if they're on the same page
     if chunk1.page == chunk2.page and chunk1.coordinates and chunk2.coordinates:
-        chunk.coordinates = combine_coordinates(
-            chunk1.coordinates, chunk2.coordinates)
+        chunk.coordinates = combine_coordinates(chunk1.coordinates, chunk2.coordinates)
     return chunk
 
 
@@ -210,14 +211,12 @@ class StandardChunker(BaseProcessor):
                 shorter_chunks.append(ch)
 
         # Second pass: remove bad chunks
-        filtered_chunks = [
-            ch for ch in shorter_chunks if chunk_filter(ch.text, lang=doc.metainfo.language)]
+        filtered_chunks = [ch for ch in shorter_chunks if chunk_filter(ch.text, lang=doc.metainfo.language)]
         # remove locked chunks, i.e. those which can't be concatenated with others
         non_locked_chunks = [ch for ch in filtered_chunks if not ch.locked]
         locked_chunks = [ch for ch in filtered_chunks if ch.locked]
         # third pass: combine short chunks into longer ones
-        normal_len_chunks = concatenate_chunks(
-            non_locked_chunks, LIMITS_SOFT[0], LIMITS_HARD[1])
+        normal_len_chunks = concatenate_chunks(non_locked_chunks, LIMITS_SOFT[0], LIMITS_HARD[1])
         normal_len_chunks += locked_chunks
         # fourth pass: clean the text
         if self.clean_text:

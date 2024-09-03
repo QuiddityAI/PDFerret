@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 
-
 PRESENT_TENSE_VERB_LIST = ["VB", "VBP", "VBZ", "VBG"]
 VERB_LIST = ["VB", "VBP", "VBZ", "VBG", "VBN", "VBD"]
 NOUN_LIST = ["NNP", "NNPS"]
@@ -48,9 +47,7 @@ def compute_journal_features(article):
     """
     try:
         n_reference = len(article["references"])
-        n_unique_journals = len(
-            pd.unique([a["journal"] for a in article["references"]])
-        )
+        n_unique_journals = len(pd.unique([a["journal"] for a in article["references"]]))
         reference_years = []
         for reference in article["references"]:
             year = reference["year"]
@@ -102,8 +99,7 @@ def merge_section_list(section_list, section_maps=SECTIONS_MAPS, section_start="
     section_list_merged = []
     for section in section_list:
         if any([(s.lower() in section.lower()) for s in section_maps.keys()]):
-            sect = [s for s in section_maps.keys() if s.lower()
-                    in section.lower()][0]
+            sect = [s for s in section_maps.keys() if s.lower() in section.lower()][0]
             sect_map = section_maps.get(sect, "")  #
             section_list_merged.append(sect_map)
         else:

@@ -1,14 +1,16 @@
-from ..pdferret import PDFerret
-from ..datamodels import PDFDoc, PDFError, MetaInfo
+import json
+import tempfile
+import uuid
+from dataclasses import asdict
+from typing import Annotated, Any, List, Literal, Union
+
+import uvicorn
+from fastapi import FastAPI, File, Form, UploadFile
 from pydantic import BaseModel, ConfigDict, model_validator
 from pydantic.dataclasses import dataclass as pydantic_dc
-from dataclasses import asdict
-from typing import Union, List, Annotated, Any, Literal
-from fastapi import FastAPI, UploadFile, Form, File
-import json
-import uvicorn
-import uuid
-import tempfile
+
+from ..datamodels import MetaInfo, PDFDoc, PDFError
+from ..pdferret import PDFerret
 
 app = FastAPI()
 

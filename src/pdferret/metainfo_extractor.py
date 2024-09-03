@@ -1,11 +1,12 @@
 import io
 import os
+
 from pypdf import PdfReader, PdfWriter
 
 from . import scipdf
 from .base import BaseProcessor
-from .datamodels import MetaInfo
 from .config import GROBID_URL
+from .datamodels import MetaInfo
 
 
 class GROBIDMetaExtractor(BaseProcessor):
@@ -16,7 +17,8 @@ class GROBIDMetaExtractor(BaseProcessor):
         super().__init__(n_proc=n_proc, batch_size=batch_size)
         if grobid_url:
             self.grobid_url = grobid_url
-        else: self.grobid_url = GROBID_URL
+        else:
+            self.grobid_url = GROBID_URL
 
     def process_single(self, meta: MetaInfo) -> MetaInfo:
         reader = PdfReader(meta.file_features.file)
@@ -26,9 +28,8 @@ class GROBIDMetaExtractor(BaseProcessor):
         _ = writer.add_page(reader.pages[0])
         _ = writer.add_page(reader.pages[1])
         writer.write(buff)
-        parsed = scipdf.parse_pdf_to_dict(
-            buff.getvalue(), grobid_url=self.grobid_url)
-        target_keys = ['title', 'authors', 'pub_date', 'abstract']
+        parsed = scipdf.parse_pdf_to_dict(buff.getvalue(), grobid_url=self.grobid_url)
+        target_keys = ["title", "authors", "pub_date", "abstract"]
         for k in target_keys:
             setattr(meta, k, parsed[k])
         # Maybe TODO: check if abstract is always correstly returned,

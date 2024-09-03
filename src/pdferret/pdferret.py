@@ -3,23 +3,22 @@ import uuid
 from typing import BinaryIO, Dict, List, Union
 
 from .chunking import StandardChunker
-from .datamodels import MetaInfo, PDFDoc, PDFFile, FileFeatures, PDFError
+from .datamodels import FileFeatures, MetaInfo, PDFDoc, PDFError, PDFFile
 from .file_info_extractor import FileInfoExtractor
 from .metainfo_extractor import GROBIDMetaExtractor
 from .text_extrators.grobid import GROBIDTextExtractor
 from .text_extrators.unstructured import UnstructuredTextExtractor
 
 meta_extractors = {"grobid": GROBIDMetaExtractor}
-text_extractors = {"grobid": GROBIDTextExtractor,
-                   "unstructured": UnstructuredTextExtractor}
+text_extractors = {"grobid": GROBIDTextExtractor, "unstructured": UnstructuredTextExtractor}
 chunkers = {"standard": StandardChunker}
 
 
-class PDFerret():
+class PDFerret:
     def __init__(self, meta_extractor="grobid", text_extractor="grobid", chunker="standard"):
         """Main class to run PDF data extraction
 
-        for now only text_extractor supports two options, either "grobid" or "unstructured", 
+        for now only text_extractor supports two options, either "grobid" or "unstructured",
         rest is reseved for the future
 
         TODO: Implement detection of bad OCR quality and automatic re-OCR
@@ -52,10 +51,14 @@ class PDFerret():
     def _sort_results(self, docs, failed_all, pdfs):
         # docs: extracted data, failed_all: dictionary containing all error messages
         # pdfs: original list of pdfs
-        sorted_docs = [docs[key] if key in docs
-                       else PDFDoc(MetaInfo(file_features=FileFeatures(filename=pdfs[key] 
-                                                  if isinstance(pdfs[key], str) else None)))
-                       for key in pdfs]
+        sorted_docs = [
+            docs[key]
+            if key in docs
+            else PDFDoc(
+                MetaInfo(file_features=FileFeatures(filename=pdfs[key] if isinstance(pdfs[key], str) else None))
+            )
+            for key in pdfs
+        ]
         sorted_failed = [failed_all[key] for key in pdfs if key in failed_all]
         return sorted_docs, sorted_failed
 
@@ -75,16 +78,16 @@ class PDFerret():
             pdfs = {uuid.uuid4(): v for v in pdfs}
 
         else:
-            ValueError(
-                "Argument to extract_batch must be a list of file paths of file-like objects")
+            ValueError("Argument to extract_batch must be a list of file paths of file-like objects")
 
         # firstly, heuristically detect if pdf is scanned and its language:
         metainfo, failed = self.fileinfoextractor.process_batch(pdfs)
         failed_all.update(failed)
 
         # if grobid is used for both text and meta extraction run it just once
-        if (isinstance(self.meta_extractor, meta_extractors['grobid']) and
-                isinstance(self.text_extractor, text_extractors['grobid'])):
+        if isinstance(self.meta_extractor, meta_extractors["grobid"]) and isinstance(
+            self.text_extractor, text_extractors["grobid"]
+        ):
             self.text_extractor.extract_meta = True
             docs, failed = self.text_extractor.process_batch(metainfo)
             failed_all.update(failed)
