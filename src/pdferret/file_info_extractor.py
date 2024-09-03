@@ -1,6 +1,5 @@
 import io
 import uuid
-from typing import BinaryIO, Union
 
 from ocrmypdf import ocr
 from pypdf import PdfReader, PdfWriter

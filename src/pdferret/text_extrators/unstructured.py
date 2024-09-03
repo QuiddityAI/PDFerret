@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Dict
 
 import numpy as np
 from unstructured.documents import elements as doc_elements

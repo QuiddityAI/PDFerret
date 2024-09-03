@@ -1,6 +1,5 @@
 import io
-import os
-from typing import BinaryIO, List, Union
+from typing import List
 
 import numpy as np
 from pypdf import PdfReader, PdfWriter

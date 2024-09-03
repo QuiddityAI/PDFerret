@@ -1,5 +1,4 @@
 from dataclasses import asdict
-from string import punctuation
 
 import numpy as np
 from nltk.tokenize import sent_tokenize
@@ -53,11 +52,16 @@ def partition_list(a, k):
         bound_to_move = (
             0
             if worst_partition_index == 0
-            else k - 2
-            if worst_partition_index == k - 1
-            else worst_partition_index - 1
-            if (worst_height_diff < 0) ^ (heights[worst_partition_index - 1] > heights[worst_partition_index + 1])
-            else worst_partition_index
+            else (
+                k - 2
+                if worst_partition_index == k - 1
+                else (
+                    worst_partition_index - 1
+                    if (worst_height_diff < 0)
+                    ^ (heights[worst_partition_index - 1] > heights[worst_partition_index + 1])
+                    else worst_partition_index
+                )
+            )
         )
         direction = -1 if bound_to_move < worst_partition_index else 1
         partition_between[bound_to_move] += move * direction
