@@ -78,7 +78,7 @@ class GROBIDTextExtractor(BaseProcessor):
                 chunk = dict(
                     text=text['text'],
                     page=int(page) if page is not None else None,
-                    coordinates=coordinates)
+                    coordinates=list(coordinates))
                 chunks.append(PDFChunk(**chunk))
         return chunks
 

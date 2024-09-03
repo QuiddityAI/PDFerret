@@ -14,7 +14,7 @@ class PDFError:
 @dataclass
 class PDFChunk:
     page: int = None
-    coordinates: List[List[float]] = None
+    coordinates: List[Tuple[float, float]] = None
     section: str = ""
     prefix: str = ""
     text: str = ""

@@ -3,7 +3,7 @@ import numpy as np
 
 from ..utils.utils import split_every
 from ..base import BaseProcessor
-from ..datamodels import PDFChunk, MetaInfo, PDFDoc
+from ..datamodels import PDFChunk, MetaInfo, PDFDoc, PDFError
 from unstructured.partition.pdf import partition_pdf
 from unstructured.documents import elements as doc_elements
 from ..logging import logger
@@ -64,7 +64,10 @@ class UnstructuredTextExtractor(BaseProcessor):
 
         p = self._process_serial(scanned)
         parsed.update(p)
-        return parsed
+
+        failed = {k:v for k,v in parsed.items() if isinstance(v, PDFError)}
+        parsed = {k:v for k,v in parsed.items() if not isinstance(v, PDFError)}
+        return parsed, failed
 
     def process_single(self, meta: MetaInfo) -> PDFDoc:
         pdf = meta.file_features.file

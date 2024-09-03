@@ -3,10 +3,12 @@ from ..datamodels import PDFDoc, PDFError, MetaInfo
 from pydantic import BaseModel, ConfigDict, model_validator
 from pydantic.dataclasses import dataclass as pydantic_dc
 from dataclasses import asdict
-from typing import Union, List, Annotated, Any
+from typing import Union, List, Annotated, Any, Literal
 from fastapi import FastAPI, UploadFile, Form, File
 import json
 import uvicorn
+import uuid
+import tempfile
 
 app = FastAPI()
 
@@ -16,9 +18,9 @@ PydanticPDFError = pydantic_dc(PDFError)
 
 
 class PDFerretParams(BaseModel):
-    text_extractor: Union[str, None] = "grobid"
-    meta_extractor: Union[str, None] = "grobid"
-    chunker: Union[str, None] = "standard"
+    text_extractor: Union[Literal["grobid", "unstructured"], None] = "grobid"
+    meta_extractor: Union[Literal["grobid"], None] = "grobid"
+    chunker: Union[Literal["standard"], None] = "standard"
 
     # necessary to convert string to Pydantic model on-the-fly
     @model_validator(mode="before")
@@ -62,7 +64,16 @@ def process_files_by_stream(
 ) -> PDFerretResults:
 
     extractor = PDFerret(**params.dict())
-    extracted, errors = extractor.extract_batch([p.file for p in pdfs])
+
+    # load actual file content from stream and save to temporary directory
+    # handling files as stream is not parallelizable
+    with tempfile.TemporaryDirectory() as tmpdir:
+        for pdf in pdfs:
+            pdf.filename = uuid.uuid4().hex + pdf.filename
+            with open(f"{tmpdir}/{pdf.filename}", "wb") as f:
+                f.write(pdf.file.read())
+        extracted, errors = extractor.extract_batch([f"{tmpdir}/{pdf.filename}" for pdf in pdfs])
+        
     return PDFerretResults(
         extracted=[
             PydanticPDFDoc(metainfo=_clear_file(e.metainfo), chunks=e.chunks)

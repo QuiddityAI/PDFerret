@@ -72,7 +72,7 @@ class PDFerret():
         # between processes when multiprocessing is used
         # TODO: chech file size
         elif "read" in dir(pdfs[0]):
-            pdfs = {uuid.uuid4(): v.read() for v in pdfs}
+            pdfs = {uuid.uuid4(): v for v in pdfs}
 
         else:
             ValueError(
