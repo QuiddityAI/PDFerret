@@ -30,6 +30,17 @@ extractor = PDFerret(text_extractor="unstructured")
 extracted, errors = extractor.extract_batch(list_of_pdf_files)
 ```
 
+# API usage
+
+Run `docker compose up` to build the container. Warning: it will download `unstructured` and `grobid` images, ~10 GB in total. See `http://localhost:58080/docs`
+Use client.py, simple usage example:
+```python
+from client import *
+pdc = PDFerretClient("http://localhost:58080")
+resp = pdc.process_files(["./file.pdf"])
+print(resp)
+```
+
 # Example
 
 see `demo_pdferret.ipynb` for example of usage.
