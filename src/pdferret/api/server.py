@@ -5,15 +5,15 @@ from typing import Annotated, Any, List, Literal, Union
 
 from fastapi import FastAPI, File, Form, UploadFile
 from pydantic import BaseModel, ConfigDict, model_validator
-from pydantic.dataclasses import dataclass as pydantic_dc
+from pydantic.dataclasses import dataclass as pydantic_dataclass
 
 from ..datamodels import MetaInfo, PDFDoc, PDFError
 from ..pdferret import PDFerret
 
 app = FastAPI()
 
-PydanticPDFDoc = pydantic_dc(PDFDoc, config=ConfigDict(arbitrary_types_allowed=True))
-PydanticPDFError = pydantic_dc(PDFError)
+PydanticPDFDoc = pydantic_dataclass(PDFDoc, config=ConfigDict(arbitrary_types_allowed=True))
+PydanticPDFError = pydantic_dataclass(PDFError)
 
 
 class PDFerretParams(BaseModel):
