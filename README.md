@@ -16,7 +16,6 @@ Following env variables are supported to configure PDFerret:
 - `PDFERRET_BATCH_SIZE` - sets batch size for parallel processing, i.e. how many items are processed between fork and join. Must be at least `PDFERRET_NPROC`, but shouldn't have strong influence on performance otherwise
 - `PDFERRET_MAX_PAGES` - all pdfs will be cropped to first MAX_PAGES
 
-
 # Usage
 
 As soon as pdferret package is installed and GROBID is running you can import the package and parse the batch of PDFs:

@@ -47,9 +47,9 @@ class GROBIDTextExtractor(BaseProcessor):
 
     def _extract_chunks(self, parsed) -> List[PDFChunk]:
         chunks = []
-        for section in parsed['sections']:
-            for text in section['text']:
-                coords = text.get('coords')
+        for section in parsed["sections"]:
+            for text in section["text"]:
+                coords = text.get("coords")
                 page = None
                 if coords:
                     pages = [c[0] for c in coords]
@@ -57,34 +57,29 @@ class GROBIDTextExtractor(BaseProcessor):
                     if len(set(pages)) > 1:
                         coords = [c for c in coords if c[0] == page]
                     xmin, ymin, xmax, ymax = combine_bboxes(coords)
-                    page_sizes = {p['n']: p for p in parsed['page_sizes']}
+                    page_sizes = {p["n"]: p for p in parsed["page_sizes"]}
                     page_size = page_sizes[page]
-                    page_width = float(
-                        page_size['lrx']) - float(page_size['ulx'])
-                    page_height = float(
-                        page_size['lry']) - float(page_size['uly'])
+                    page_width = float(page_size["lrx"]) - float(page_size["ulx"])
+                    page_height = float(page_size["lry"]) - float(page_size["uly"])
 
-                    xmin_r = (xmin - float(page_size['ulx'])) / page_width
-                    xmax_r = (xmax - float(page_size['ulx'])) / page_width
+                    xmin_r = (xmin - float(page_size["ulx"])) / page_width
+                    xmax_r = (xmax - float(page_size["ulx"])) / page_width
                     # see unstructured.py for explanation about y-axis inversion
-                    ymax_r = 1.0 - \
-                        (ymin - float(page_size['uly'])) / page_height
-                    ymin_r = 1.0 - \
-                        (ymax - float(page_size['uly'])) / page_height
+                    ymax_r = 1.0 - (ymin - float(page_size["uly"])) / page_height
+                    ymin_r = 1.0 - (ymax - float(page_size["uly"])) / page_height
                     coordinates = [(xmin_r, ymin_r), (xmax_r, ymax_r)]
                 else:
                     coordinates = []
 
                 chunk = dict(
-                    text=text['text'],
-                    page=int(page) if page is not None else None,
-                    coordinates=list(coordinates))
+                    text=text["text"], page=int(page) if page is not None else None, coordinates=list(coordinates)
+                )
                 chunks.append(PDFChunk(**chunk))
         return chunks
 
     def _extract_extra_text(self, parsed):
         chunks = []
-        for text in parsed['extra_text']:
+        for text in parsed["extra_text"]:
             ch = PDFChunk(text=text, locked=True)
             chunks.append(ch)
         return chunks
@@ -99,23 +94,23 @@ class GROBIDTextExtractor(BaseProcessor):
             for i in range(self.max_pages):
                 writer.add_page(reader.pages[i])
             writer.write(buff)
-            parsed = scipdf.parse_pdf_to_dict(
-                buff.getvalue(), grobid_url=self.grobid_url)
+            parsed = scipdf.parse_pdf_to_dict(buff.getvalue(), grobid_url=self.grobid_url)
 
         # special case for npages < max_pages and being BinaryIO
         # unfortuntely there's no good way to check if something
         # is file-like object
         elif not isinstance(pdf, str):
             parsed = scipdf.parse_pdf_to_dict(
-                pdf if isinstance(pdf, bytes) else pdf.getvalue(), grobid_url=self.grobid_url)
+                pdf if isinstance(pdf, bytes) else pdf.getvalue(), grobid_url=self.grobid_url
+            )
         else:
             parsed = scipdf.parse_pdf_to_dict(pdf, grobid_url=self.grobid_url)
         if self.extract_meta:
-            meta.doi = parsed['doi']
-            meta.title = parsed['title']
-            meta.authors = parsed['authors']
-            meta.pub_date = parsed['pub_date']
-            meta.abstract = parsed['abstract']
+            meta.doi = parsed["doi"]
+            meta.title = parsed["title"]
+            meta.authors = parsed["authors"]
+            meta.pub_date = parsed["pub_date"]
+            meta.abstract = parsed["abstract"]
 
         chunks = self._extract_chunks(parsed)
         chunks += self._extract_extra_text(parsed)

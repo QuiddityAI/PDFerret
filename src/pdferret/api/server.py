@@ -12,7 +12,6 @@ import tempfile
 
 app = FastAPI()
 
-
 PydanticPDFDoc = pydantic_dc(PDFDoc, config=ConfigDict(arbitrary_types_allowed=True))
 PydanticPDFError = pydantic_dc(PDFError)
 
@@ -46,15 +45,8 @@ def process_files_by_path(pdfs: List[str], params: PDFerretParams) -> PDFerretRe
     extractor = PDFerret(**params.dict())
     extracted, errors = extractor.extract_batch(pdfs)
     return PDFerretResults(
-        extracted=[
-            PydanticPDFDoc(metainfo=e.metainfo, chunks=e.chunks) for e in extracted
-        ],
-        errors=[
-            PydanticPDFError(
-                exc=e.exc, traceback="\n".join(e.traceback), file=str(e.file)
-            )
-            for e in errors
-        ],
+        extracted=[PydanticPDFDoc(metainfo=e.metainfo, chunks=e.chunks) for e in extracted],
+        errors=[PydanticPDFError(exc=e.exc, traceback="\n".join(e.traceback), file=str(e.file)) for e in errors],
     )
 
 
@@ -73,16 +65,12 @@ def process_files_by_stream(
             with open(f"{tmpdir}/{pdf.filename}", "wb") as f:
                 f.write(pdf.file.read())
         extracted, errors = extractor.extract_batch([f"{tmpdir}/{pdf.filename}" for pdf in pdfs])
-        
+
+    # restore original filename
+    for e in extracted:
+        original_filename = e.metainfo.file_features.filename.split("/")[-1]
+        e.metainfo.file_features.filename = original_filename[32:]  # 32 is length of uuid
     return PDFerretResults(
-        extracted=[
-            PydanticPDFDoc(metainfo=_clear_file(e.metainfo), chunks=e.chunks)
-            for e in extracted
-        ],
-        errors=[
-            PydanticPDFError(
-                exc=e.exc, traceback="\n".join(e.traceback), file=str(e.file)
-            )
-            for e in errors
-        ],
+        extracted=[PydanticPDFDoc(metainfo=_clear_file(e.metainfo), chunks=e.chunks) for e in extracted],
+        errors=[PydanticPDFError(exc=e.exc, traceback="\n".join(e.traceback), file=str(e.file)) for e in errors],
     )

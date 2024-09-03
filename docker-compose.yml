@@ -1,0 +1,25 @@
+version: "3.8"
+services:
+
+  pdferret:
+    build: .
+    image: pdferret
+    ports:
+      - "127.0.0.1:58080:80"
+    environment:
+      - PDFERRET_GROBID_URL=http://grobid:8070
+      - PDFERRET_MAX_PAGES=30
+
+  grobid:
+    image: lfoppiano/grobid:latest-develop
+    init: true
+    ports:
+      - "127.0.0.1:8070:8070"
+      - "127.0.0.1:8071:8071"
+    environment:
+      - grobid__3rdparty__pdf2xml__memory__limit__mb=8000
+    deploy:
+      resources:
+        limits:
+          cpus: "8"
+          memory: "8192mb"
