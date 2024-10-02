@@ -1,15 +1,14 @@
-import glob
 import uuid
-from typing import BinaryIO, Dict, List, Union
+from typing import List
 
 from .chunking import StandardChunker
 from .datamodels import FileFeatures, MetaInfo, PDFDoc, PDFError, PDFFile
-from .file_info_extractor import FileInfoExtractor
-from .metainfo_extractor import GROBIDMetaExtractor
+from .file_info_extractor import DummyFileInfoExtractor, FileInfoExtractor
+from .metainfo_extractor import DummyMetaExtractor, GROBIDMetaExtractor
 from .text_extrators.grobid import GROBIDTextExtractor
-from .text_extrators.unstructured import UnstructuredTextExtractor
+from .text_extrators.unstructured import UnstructuredGeneralExtractor, UnstructuredTextExtractor
 
-meta_extractors = {"grobid": GROBIDMetaExtractor}
+meta_extractors = {"grobid": GROBIDMetaExtractor, "dummy": DummyMetaExtractor}
 text_extractors = {"grobid": GROBIDTextExtractor, "unstructured": UnstructuredTextExtractor}
 chunkers = {"standard": StandardChunker}
 
@@ -52,33 +51,56 @@ class PDFerret:
         # docs: extracted data, failed_all: dictionary containing all error messages
         # pdfs: original list of pdfs
         sorted_docs = [
-            docs[key]
-            if key in docs
-            else PDFDoc(
-                MetaInfo(file_features=FileFeatures(filename=pdfs[key] if isinstance(pdfs[key], str) else None))
+            (
+                docs[key]
+                if key in docs
+                else PDFDoc(
+                    MetaInfo(file_features=FileFeatures(filename=pdfs[key] if isinstance(pdfs[key], str) else None))
+                )
             )
             for key in pdfs
         ]
         sorted_failed = [failed_all[key] for key in pdfs if key in failed_all]
         return sorted_docs, sorted_failed
 
-    def extract_batch(self, pdfs: List[PDFFile]) -> tuple[List[PDFDoc], List[PDFError]]:
+    def _is_pdf_file(self, file) -> bool:
+        pdf_signature = b"%PDF-"
+        if isinstance(file, str):
+            try:
+                with open(file, "rb") as f:
+                    file_start = f.read(5)
+            except IOError:
+                return False
+        elif isinstance(file, bytes):
+            file_start = file[:5]
+        elif hasattr(file, "read"):
+            file_start = file.read(5)
+            file.seek(0)  # Reset the file pointer to the beginning
+        else:
+            return False
+        return file_start.startswith(pdf_signature)
+
+    def extract_batch(self, files: List[PDFFile]) -> tuple[List[PDFDoc], List[PDFError]]:
         failed_all = {}
         # assign unique ids to every item
-        if isinstance(pdfs[0], str):
-            pdfs = {v: v for v in pdfs}
-        elif isinstance(pdfs[0], bytes):
-            pdfs = {uuid.uuid4(): v for v in pdfs}
-        # use duck typing to detect if pdf is file-like object
+        if isinstance(files[0], str):
+            files = {v: v for v in files}
+        elif isinstance(files[0], bytes):
+            files = {uuid.uuid4(): v for v in files}
+        # use duck typing to detect if file is file-like object
         # assign UUID as identifier instead of filename
         # and load to memory if as file-like objects can't be shared
         # between processes when multiprocessing is used
-        # TODO: chech file size
-        elif "read" in dir(pdfs[0]):
-            pdfs = {uuid.uuid4(): v for v in pdfs}
+        # TODO: check file size
+        elif "read" in dir(files[0]):
+            files = {uuid.uuid4(): v for v in files}
 
         else:
-            ValueError("Argument to extract_batch must be a list of file paths of file-like objects")
+            ValueError("Argument to extract_batch must be a list of file paths or file-like objects")
+
+        # separate pdfs from other files
+        pdfs = {k: v for k, v in files.items() if self._is_pdf_file(v)}
+        other_files = {k: v for k, v in files.items() if k not in pdfs}
 
         # firstly, heuristically detect if pdf is scanned and its language:
         metainfo, failed = self.fileinfoextractor.process_batch(pdfs)
@@ -105,8 +127,18 @@ class PDFerret:
         failed_all.update(failed)
         docs, failed = self.text_extractor.process_batch(metainfo)
         failed_all.update(failed)
+        # finally extract non-pdf files
+        if other_files:
+            dummy_extractor = DummyFileInfoExtractor()
+            other_metainfo, failed = dummy_extractor.process_batch(other_files)
+            failed_all.update(failed)
+            general_extractor = UnstructuredGeneralExtractor()
+            nonpdf_docs, failed = general_extractor.process_batch(other_metainfo)
+            docs.update(nonpdf_docs)
+            failed_all.update(failed)
+
         if self.chunker:
             docs, failed = self.chunker.process_batch(docs)
             failed_all.update(failed)
 
-        return self._sort_results(docs, failed_all, pdfs)
+        return self._sort_results(docs, failed_all, files)

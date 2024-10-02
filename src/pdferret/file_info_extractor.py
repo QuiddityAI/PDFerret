@@ -12,6 +12,15 @@ from .utils.langdetect import detect_language
 from .utils.scan_detector import is_scanned
 
 
+class DummyFileInfoExtractor(BaseProcessor):
+    parallel = "process"
+    operates_on = PDFFile
+
+    def process_single(self, pdf: PDFFile) -> MetaInfo:
+        fname = pdf if isinstance(pdf, str) else uuid.uuid4()
+        return MetaInfo(file_features=FileFeatures(filename=fname, file=pdf), language="en")
+
+
 class FileInfoExtractor(BaseProcessor):
     parallel = "process"
     operates_on = PDFFile

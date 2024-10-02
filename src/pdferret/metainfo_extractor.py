@@ -35,3 +35,11 @@ class GROBIDMetaExtractor(BaseProcessor):
         # Maybe TODO: check if abstract is always correstly returned,
         # maybe take first block of the text if it's empty
         return meta
+
+
+class DummyMetaExtractor(BaseProcessor):
+    parallel = "thread"
+    operates_on = MetaInfo
+
+    def process_single(self, meta: MetaInfo) -> MetaInfo:
+        return meta
