@@ -1,12 +1,21 @@
 import json
 from dataclasses import dataclass, field
-from typing import List, Tuple, TypeAlias, Union
+from enum import Enum
+from typing import List, Tuple, TypeAlias
 
 import requests
 from pydantic import BaseModel, ConfigDict
 from pydantic.dataclasses import dataclass as pydantic_dataclass
 
 PDFFile: TypeAlias = str
+
+
+class ChunkType(str, Enum):
+    TEXT = "text"
+    FIGURE = "figure"
+    TABLE = "table"
+    EQUATION = "equation"
+    OTHER = "other"
 
 
 @pydantic_dataclass
@@ -25,6 +34,7 @@ class PDFChunk:
     text: str | None = None
     suffix: str | None = None
     locked: bool | None = None
+    chunk_type: ChunkType | None = ChunkType.TEXT
 
 
 @pydantic_dataclass

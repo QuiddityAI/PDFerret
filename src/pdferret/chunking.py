@@ -209,13 +209,18 @@ class StandardChunker(BaseProcessor):
         # First pass: split all large chunks into smaller ones:
         shorter_chunks = []
         for ch in doc.chunks:
+            if ch.locked:
+                shorter_chunks.append(ch)
+                continue
             if len(ch.text) > LIMITS_SOFT[1]:
                 shorter_chunks.extend(split_chunk(ch))
             else:
                 shorter_chunks.append(ch)
 
         # Second pass: remove bad chunks
-        filtered_chunks = [ch for ch in shorter_chunks if chunk_filter(ch.text, lang=doc.metainfo.language)]
+        filtered_chunks = [
+            ch for ch in shorter_chunks if chunk_filter(ch.text, lang=doc.metainfo.language) or ch.locked
+        ]
         # remove locked chunks, i.e. those which can't be concatenated with others
         non_locked_chunks = [ch for ch in filtered_chunks if not ch.locked]
         locked_chunks = [ch for ch in filtered_chunks if ch.locked]
@@ -226,7 +231,7 @@ class StandardChunker(BaseProcessor):
         if self.clean_text:
             final_chunks = []
             for ch in normal_len_chunks:
-                ch.text = clean_chunk(ch.text)
+                ch.text = clean_chunk(ch.text) if not ch.locked else ch.text
                 final_chunks.append(ch)
             doc.chunks = final_chunks
         else:

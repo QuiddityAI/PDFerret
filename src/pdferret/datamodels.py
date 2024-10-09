@@ -1,7 +1,17 @@
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import BinaryIO, List, Tuple, TypeAlias, Union
 
 PDFFile: TypeAlias = Union[str, BinaryIO, bytes]
+
+
+# enum for different types of document elements, such as text, figure, table, etc.
+class ChunkType(Enum):
+    TEXT = "text"
+    FIGURE = "figure"
+    TABLE = "table"
+    EQUATION = "equation"
+    OTHER = "other"
 
 
 @dataclass
@@ -20,6 +30,7 @@ class PDFChunk:
     text: str = ""
     suffix: str = ""
     locked: bool = False
+    chunk_type: ChunkType = ChunkType.TEXT
     # true if joining of this chunk with others is forbidden, e.g. fro figure captions
 
 

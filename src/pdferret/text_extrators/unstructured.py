@@ -7,7 +7,7 @@ from unstructured.partition.auto import partition
 from unstructured.partition.pdf import partition_pdf
 
 from ..base import BaseProcessor
-from ..datamodels import MetaInfo, PDFChunk, PDFDoc, PDFError
+from ..datamodels import ChunkType, MetaInfo, PDFChunk, PDFDoc, PDFError
 from ..logging import logger
 from ..utils.utils import split_every
 
@@ -144,17 +144,23 @@ class UnstructuredGeneralExtractor(BaseProcessor):
         chunks = []
         # TODO: extract tables
         for el in elements:
-            if not isinstance(el, (doc_elements.NarrativeText, doc_elements.Text)):
+            if not isinstance(el, (doc_elements.NarrativeText, doc_elements.Text, doc_elements.Table)):
                 continue
-
             eldict = el.to_dict()
-            text = eldict["text"]
-            if len(text) < self.min_text_len:
-                continue
+            if isinstance(el, doc_elements.Table):
+                text = el.metadata.text_as_html
+                chunk_type = ChunkType.TABLE
+                locked = True
+            else:
+                text = eldict["text"]
+                chunk_type = ChunkType.TEXT
+                locked = False
+                if len(text) < self.min_text_len:
+                    continue
             try:
                 page = eldict["metadata"]["page_number"]
             except KeyError:
                 page = None
-            chunk = PDFChunk(page=page, text=text, coordinates=None)
+            chunk = PDFChunk(page=page, text=text, coordinates=None, chunk_type=chunk_type, locked=locked)
             chunks.append(chunk)
         return PDFDoc(metainfo=meta, chunks=chunks)
