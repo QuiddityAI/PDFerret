@@ -42,7 +42,7 @@ def _clear_file(metainfo: MetaInfo):
 
 @app.post("/process_files_by_path")
 def process_files_by_path(pdfs: List[str], params: PDFerretParams) -> PDFerretResults:
-    extractor = PDFerret(**params.dict())
+    extractor = PDFerret(**params.model_dump())
     extracted, errors = extractor.extract_batch(pdfs)
     return PDFerretResults(
         extracted=[PydanticPDFDoc(metainfo=e.metainfo, chunks=e.chunks) for e in extracted],
@@ -55,7 +55,7 @@ def process_files_by_stream(
     pdfs: Annotated[List[UploadFile], File()], params: Annotated[PDFerretParams, Form()]
 ) -> PDFerretResults:
 
-    extractor = PDFerret(**params.dict())
+    extractor = PDFerret(**params.model_dump())
 
     # load actual file content from stream and save to temporary directory
     # handling files as stream is not parallelizable

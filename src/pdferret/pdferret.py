@@ -113,12 +113,13 @@ class PDFerret:
             self.text_extractor.extract_meta = True
             docs, failed = self.text_extractor.process_batch(metainfo)
             failed_all.update(failed)
-
+            if other_files:
+                self._process_nonpdf_files(failed_all, other_files, docs)
             if self.chunker:
                 docs, failed = self.chunker.process_batch(docs)
                 failed_all.update(failed)
 
-            return self._sort_results(docs, failed_all, pdfs)
+            return self._sort_results(docs, failed_all, files)
 
         # otherwise extract meta and text separately then combine
         # note that metaextractors update the metainfo, while
@@ -129,16 +130,34 @@ class PDFerret:
         failed_all.update(failed)
         # finally extract non-pdf files
         if other_files:
-            dummy_extractor = DummyFileInfoExtractor()
-            other_metainfo, failed = dummy_extractor.process_batch(other_files)
-            failed_all.update(failed)
-            general_extractor = UnstructuredGeneralExtractor()
-            nonpdf_docs, failed = general_extractor.process_batch(other_metainfo)
-            docs.update(nonpdf_docs)
-            failed_all.update(failed)
+            self._process_nonpdf_files(failed_all, other_files, docs)
 
         if self.chunker:
             docs, failed = self.chunker.process_batch(docs)
             failed_all.update(failed)
 
         return self._sort_results(docs, failed_all, files)
+
+    def _process_nonpdf_files(self, failed_all, other_files, docs):
+        """
+        Small subprogramm to process non-PDF files by extracting metadata and updating the provided document collections.
+
+        Args:
+            failed_all (dict): A dict to store the filenames of files that failed processing.
+            other_files (list): A list of non-PDF files to be processed.
+            docs (dict): A dictionary to store the successfully processed document metadata.
+
+        This method uses two extractors:
+        - DummyFileInfoExtractor: Extracts basic metadata from the non-PDF files.
+        - UnstructuredGeneralExtractor: Processes the extracted metadata to generate document information.
+
+        The method updates the `failed_all` dict with any files that fail during either extraction step,
+        and updates the `docs` dictionary with the successfully processed document metadata.
+        """
+        dummy_extractor = DummyFileInfoExtractor()
+        other_metainfo, failed = dummy_extractor.process_batch(other_files)
+        failed_all.update(failed)
+        general_extractor = UnstructuredGeneralExtractor()
+        nonpdf_docs, failed = general_extractor.process_batch(other_metainfo)
+        docs.update(nonpdf_docs)
+        failed_all.update(failed)
