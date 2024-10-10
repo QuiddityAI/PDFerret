@@ -18,7 +18,7 @@ class DummyFileInfoExtractor(BaseProcessor):
 
     def process_single(self, pdf: PDFFile) -> MetaInfo:
         fname = pdf if isinstance(pdf, str) else uuid.uuid4()
-        return MetaInfo(file_features=FileFeatures(filename=fname, file=pdf), language="en")
+        return MetaInfo(file_features=FileFeatures(filename=fname, file=pdf), language="")
 
 
 class FileInfoExtractor(BaseProcessor):

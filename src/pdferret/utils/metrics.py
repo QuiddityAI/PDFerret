@@ -10,6 +10,8 @@ lang_code_to_nltk = {"en": "english", "fr": "french", "de": "german"}
 
 
 def spellcheck_score(text: str, lang: str):
+    if lang not in lang_code_to_nltk:
+        return 1.0
     words = [w.lower() for w in word_tokenize(text, language=lang_code_to_nltk[lang]) if len(w) > 3]
     if not words:
         return 0.0

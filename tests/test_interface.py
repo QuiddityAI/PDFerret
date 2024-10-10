@@ -38,6 +38,12 @@ def sample_docx_w_table_path():
     return os.path.join(abspath, "data/test_w_table.docx")
 
 
+@pytest.fixture
+def sample_doc_path():
+    abspath = os.path.abspath(os.path.dirname(__file__))
+    return os.path.join(abspath, "data/test.doc")
+
+
 def test_extract_pdf_unstructured(sample_pdf_path):
     pdferret_instance = pdferret.PDFerret(meta_extractor="dummy", text_extractor="unstructured")
     parsed, errors = pdferret_instance.extract_batch([sample_pdf_path])
@@ -78,3 +84,11 @@ def test_extract_docx_w_table_unstructured(sample_docx_w_table_path):
     assert len(parsed) == 1
     assert len([ch for ch in parsed[0].chunks if ch.chunk_type.value == "table"]) == 2
     assert parsed[0].metainfo.file_features.file == sample_docx_w_table_path
+
+
+def test_extract_doc_unstructured(sample_doc_path):
+    pdferret_instance = pdferret.PDFerret(meta_extractor="dummy", text_extractor="unstructured")
+    parsed, errors = pdferret_instance.extract_batch([sample_doc_path])
+    assert not errors
+    assert len(parsed) == 1
+    assert parsed[0].metainfo.file_features.file == sample_doc_path
