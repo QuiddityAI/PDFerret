@@ -158,13 +158,12 @@ class UnstructuredGeneralExtractor(BaseProcessor):
                 text = eldict["text"]
                 chunk_type = ChunkType.TEXT
                 locked = False
-                if len(text) < self.min_text_len:
-                    continue
             try:
                 page = eldict["metadata"]["page_number"]
             except KeyError:
                 page = None
             chunk = PDFChunk(page=page, text=text, coordinates=None, chunk_type=chunk_type, locked=locked)
+            chunk.reliable = True
             chunks.append(chunk)
             languages.append(detect_language(text))
 

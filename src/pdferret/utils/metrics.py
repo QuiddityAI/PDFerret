@@ -7,6 +7,7 @@ from .langdetect import lang_codes
 dictionaries = {lang: SpellChecker(lang).word_frequency.dictionary for lang in lang_codes}
 
 lang_code_to_nltk = {"en": "english", "fr": "french", "de": "german"}
+lang_weights = {"en": 1.0, "de": 2.0, "fr": 2.0}
 
 
 def spellcheck_score(text: str, lang: str):
@@ -16,7 +17,7 @@ def spellcheck_score(text: str, lang: str):
     if not words:
         return 0.0
     correct_words = sum([w in dictionaries[lang] for w in words])
-    return correct_words / len(words)
+    return lang_weights[lang] * correct_words / len(words)
 
 
 def wordlen_score(text: str, lang: str):

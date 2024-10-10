@@ -218,8 +218,12 @@ class StandardChunker(BaseProcessor):
                 shorter_chunks.append(ch)
 
         # Second pass: remove bad chunks
+        # reliable attribute is set when data is coming from reliable source (such as DOCX)
+        # and doesn't need to validated
         filtered_chunks = [
-            ch for ch in shorter_chunks if chunk_filter(ch.text, lang=doc.metainfo.language) or ch.locked
+            ch
+            for ch in shorter_chunks
+            if (chunk_filter(ch.text, lang=doc.metainfo.language) or ch.locked or getattr(ch, "reliable", False))
         ]
         # remove locked chunks, i.e. those which can't be concatenated with others
         non_locked_chunks = [ch for ch in filtered_chunks if not ch.locked]
@@ -231,7 +235,11 @@ class StandardChunker(BaseProcessor):
         if self.clean_text:
             final_chunks = []
             for ch in normal_len_chunks:
-                ch.text = clean_chunk(ch.text, doc.metainfo.language) if not ch.locked else ch.text
+                ch.text = (
+                    clean_chunk(ch.text, doc.metainfo.language)
+                    if not (ch.locked or getattr(ch, "reliable", False))
+                    else ch.text
+                )
                 final_chunks.append(ch)
             doc.chunks = final_chunks
         else:
