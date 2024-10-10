@@ -9,6 +9,7 @@ from unstructured.partition.pdf import partition_pdf
 from ..base import BaseProcessor
 from ..datamodels import ChunkType, MetaInfo, PDFChunk, PDFDoc, PDFError
 from ..logging import logger
+from ..utils.langdetect import detect_language
 from ..utils.utils import split_every
 
 
@@ -142,6 +143,8 @@ class UnstructuredGeneralExtractor(BaseProcessor):
 
         elements = partition(**input_kwargs, languages=self.languages)
         chunks = []
+        # collect all languages detected in the document, will assume most common is the document language
+        languages = []
         # TODO: extract tables
         for el in elements:
             if not isinstance(el, (doc_elements.NarrativeText, doc_elements.Text, doc_elements.Table)):
@@ -163,4 +166,7 @@ class UnstructuredGeneralExtractor(BaseProcessor):
                 page = None
             chunk = PDFChunk(page=page, text=text, coordinates=None, chunk_type=chunk_type, locked=locked)
             chunks.append(chunk)
+            languages.append(detect_language(text))
+
+        meta.language = max(set(languages), key=languages.count)
         return PDFDoc(metainfo=meta, chunks=chunks)

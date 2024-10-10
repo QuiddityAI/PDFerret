@@ -39,6 +39,12 @@ def sample_docx_w_table_path():
 
 
 @pytest.fixture
+def sample_doc_german_path():
+    abspath = os.path.abspath(os.path.dirname(__file__))
+    return os.path.join(abspath, "data/test_de.doc")
+
+
+@pytest.fixture
 def sample_doc_path():
     abspath = os.path.abspath(os.path.dirname(__file__))
     return os.path.join(abspath, "data/test.doc")
@@ -92,3 +98,11 @@ def test_extract_doc_unstructured(sample_doc_path):
     assert not errors
     assert len(parsed) == 1
     assert parsed[0].metainfo.file_features.file == sample_doc_path
+
+
+def test_extract_doc_german(sample_doc_german_path):
+    pdferret_instance = pdferret.PDFerret(meta_extractor="dummy", text_extractor="unstructured")
+    parsed, errors = pdferret_instance.extract_batch([sample_doc_german_path])
+    assert not errors
+    assert len(parsed) == 1
+    assert "Kommunalbehörden in der Europäischen Gemeinschaft" in parsed[0].chunks[10].text

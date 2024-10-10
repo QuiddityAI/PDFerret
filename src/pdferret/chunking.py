@@ -231,7 +231,7 @@ class StandardChunker(BaseProcessor):
         if self.clean_text:
             final_chunks = []
             for ch in normal_len_chunks:
-                ch.text = clean_chunk(ch.text) if not ch.locked else ch.text
+                ch.text = clean_chunk(ch.text, doc.metainfo.language) if not ch.locked else ch.text
                 final_chunks.append(ch)
             doc.chunks = final_chunks
         else:
