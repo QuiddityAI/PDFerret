@@ -51,6 +51,7 @@ class MetaInfo:
     language: str = ""
     file_features: FileFeatures = None
     npages: int = None
+    thumbnail: bytes = None
 
 
 @dataclass
