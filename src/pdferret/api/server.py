@@ -1,3 +1,4 @@
+import base64
 import json
 import tempfile
 import uuid
@@ -17,9 +18,14 @@ PydanticPDFError = pydantic_dataclass(PDFError)
 
 
 class PDFerretParams(BaseModel):
-    text_extractor: Union[Literal["grobid", "unstructured"], None] = "grobid"
-    meta_extractor: Union[Literal["grobid"], None] = "grobid"
+    text_extractor: Union[Literal["grobid", "unstructured", "dummy"], None] = "grobid"
+    meta_extractor: Union[Literal["grobid", "dummy"], None] = "grobid"
     chunker: Union[Literal["standard"], None] = "standard"
+    thumbnails: Union[bool, None] = True
+    llm_summary: Union[bool, None] = False
+    llm_table_description: Union[bool, None] = False
+    llm_model: Union[str, None] = "llama-3.2-3b-preview"
+    llm_provider: Union[str, None] = "groq"
 
     # necessary to convert string to Pydantic model on-the-fly
     @model_validator(mode="before")
@@ -35,8 +41,10 @@ class PDFerretResults(BaseModel):
     errors: List[PydanticPDFError]
 
 
-def _clear_file(metainfo: MetaInfo):
+def _prepare_metainfo(metainfo: MetaInfo):
     metainfo.file_features.file = None
+    if metainfo.thumbnail:
+        metainfo.thumbnail = base64.b64encode(metainfo.thumbnail).decode("utf-8")
     return metainfo
 
 
@@ -71,6 +79,6 @@ def process_files_by_stream(
         original_filename = e.metainfo.file_features.filename.split("/")[-1]
         e.metainfo.file_features.filename = original_filename[32:]  # 32 is length of uuid
     return PDFerretResults(
-        extracted=[PydanticPDFDoc(metainfo=_clear_file(e.metainfo), chunks=e.chunks) for e in extracted],
+        extracted=[PydanticPDFDoc(metainfo=_prepare_metainfo(e.metainfo), chunks=e.chunks) for e in extracted],
         errors=[PydanticPDFError(exc=e.exc, traceback="\n".join(e.traceback), file=str(e.file)) for e in errors],
     )

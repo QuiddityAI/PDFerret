@@ -54,6 +54,7 @@ class MetaInfo:
     language: str = ""
     file_features: FileFeatures | None = None
     npages: int | None = None
+    thumbnail: bytes | None = None
 
 
 @pydantic_dataclass

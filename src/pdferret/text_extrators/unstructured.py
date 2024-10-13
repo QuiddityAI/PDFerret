@@ -54,7 +54,7 @@ class UnstructuredTextExtractor(BaseProcessor):
         parsed = {}
         scanned = {k: v for k, v in X.items() if v.file_features.is_scanned}
         not_scanned = {k: v for k, v in X.items() if not v.file_features.is_scanned}
-        logger.warn(f"Processing {len(scanned)} scanned, {len(not_scanned)} native PDFs")
+        logger.warning(f"Processing {len(scanned)} scanned, {len(not_scanned)} native PDFs")
         # not scanned documents can be processed in parallel
         for batch_keys in split_every(not_scanned, self.batch_size):
             batch = {k: X[k] for k in batch_keys}

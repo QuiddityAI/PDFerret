@@ -105,4 +105,4 @@ def test_extract_doc_german(sample_doc_german_path):
     parsed, errors = pdferret_instance.extract_batch([sample_doc_german_path])
     assert not errors
     assert len(parsed) == 1
-    assert "Kommunalbehörden in der Europäischen Gemeinschaft" in parsed[0].chunks[10].text
+    assert "Das Zertifikationssystem ist im Grunde eine Regelung" in parsed[0].chunks[10].text

@@ -4,9 +4,11 @@ from typing import List
 from .chunking import StandardChunker
 from .datamodels import FileFeatures, MetaInfo, PDFDoc, PDFError, PDFFile
 from .file_info_extractor import DummyFileInfoExtractor, FileInfoExtractor
-from .metainfo_extractor import DummyMetaExtractor, GROBIDMetaExtractor
+from .metainfo.grobid_extractor import DummyMetaExtractor, GROBIDMetaExtractor
+from .metainfo.llm_extractor import LLMMetaExtractor
 from .text_extrators.grobid import GROBIDTextExtractor
 from .text_extrators.unstructured import UnstructuredGeneralExtractor, UnstructuredTextExtractor
+from .thumbnails.thumbnailer import Thumbnailer
 
 meta_extractors = {"grobid": GROBIDMetaExtractor, "dummy": DummyMetaExtractor}
 text_extractors = {"grobid": GROBIDTextExtractor, "unstructured": UnstructuredTextExtractor}
@@ -14,7 +16,17 @@ chunkers = {"standard": StandardChunker}
 
 
 class PDFerret:
-    def __init__(self, meta_extractor="grobid", text_extractor="grobid", chunker="standard"):
+    def __init__(
+        self,
+        meta_extractor="grobid",
+        text_extractor="grobid",
+        chunker="standard",
+        thumbnails=True,
+        llm_summary=False,
+        llm_table_description=False,
+        llm_model="llama-3.2-3b-preview",
+        llm_provider="groq",
+    ):
         """Main class to run PDF data extraction
 
         for now only text_extractor supports two options, either "grobid" or "unstructured",
@@ -44,8 +56,18 @@ class PDFerret:
             self.chunker = chunkers[chunker]()
         else:
             self.chunker = chunker
-
         self.fileinfoextractor = FileInfoExtractor()
+        self.thumbnails = thumbnails
+        if thumbnails:
+            self.thumbnailer = Thumbnailer()
+
+        self.llm_summary = llm_summary
+        if llm_summary:
+            self.llm_meta_extractor = LLMMetaExtractor()
+        # TODO: implement table description extraction
+        self.llm_table_description = llm_table_description
+        self.llm_model = llm_model
+        self.llm_provider = llm_provider
 
     def _sort_results(self, docs, failed_all, pdfs):
         # docs: extracted data, failed_all: dictionary containing all error messages
@@ -79,6 +101,15 @@ class PDFerret:
         else:
             return False
         return file_start.startswith(pdf_signature)
+
+    def _postprocess(self, docs: List[PDFDoc]) -> List[PDFDoc]:
+        if self.thumbnails:
+            # thumbnailer never returns errors, instead it fails silently
+            # and sets thumbnail to None if it fails
+            docs, failed = self.thumbnailer.process_batch(docs)
+        if self.llm_summary:
+            docs, failed = self.llm_meta_extractor.process_batch(docs)
+        return docs
 
     def extract_batch(self, files: List[PDFFile]) -> tuple[List[PDFDoc], List[PDFError]]:
         failed_all = {}
@@ -119,6 +150,7 @@ class PDFerret:
                 docs, failed = self.chunker.process_batch(docs)
                 failed_all.update(failed)
 
+            docs = self._postprocess(docs)
             return self._sort_results(docs, failed_all, files)
 
         # otherwise extract meta and text separately then combine
@@ -135,7 +167,7 @@ class PDFerret:
         if self.chunker:
             docs, failed = self.chunker.process_batch(docs)
             failed_all.update(failed)
-
+        docs = self._postprocess(docs)
         return self._sort_results(docs, failed_all, files)
 
     def _process_nonpdf_files(self, failed_all, other_files, docs):

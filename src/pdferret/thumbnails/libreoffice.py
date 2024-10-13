@@ -4,7 +4,7 @@ import tempfile
 from typing import Dict
 
 from ..base import BaseProcessor
-from ..datamodels import MetaInfo, PDFError
+from ..datamodels import PDFDoc, PDFError
 
 
 def run_command(command):
@@ -35,22 +35,24 @@ def make_thumbnail_libreoffice(files: list[str], output_dir: str):
 
 class LibreOfficeThumbnailer(BaseProcessor):
     parallel = False
-    operates_on = MetaInfo
+    operates_on = PDFDoc
 
-    def process_single(self, meta: MetaInfo) -> MetaInfo:
+    def process_single(self, doc: PDFDoc) -> PDFDoc:
         # just dummy, actual processing is in _process_batch
-        return meta
+        return doc
 
-    def _process_batch(self, X: Dict[str, MetaInfo]) -> tuple[Dict[str, MetaInfo], Dict[str, PDFError]]:
+    def _process_batch(self, X: Dict[str, PDFDoc]) -> tuple[Dict[str, PDFDoc], Dict[str, PDFError]]:
         with tempfile.TemporaryDirectory() as output_dir:
-            stdout, strderr = make_thumbnail_libreoffice([meta.file_features.file for meta in X.values()], output_dir)
-            for meta in X.values():
-                base_name = os.path.basename(meta.file_features.file)
+            stdout, stderr = make_thumbnail_libreoffice(
+                [doc.metainfo.file_features.file for doc in X.values()], output_dir
+            )
+            for doc in X.values():
+                base_name = os.path.basename(doc.metainfo.file_features.file)
                 name, _ = os.path.splitext(base_name)
                 thumbnail_path = os.path.join(output_dir, f"{name}.png")
                 try:
                     with open(thumbnail_path, "rb") as f:
-                        meta.thumbnail = f.read()
+                        doc.metainfo.thumbnail = f.read()
                 except FileNotFoundError:
                     pass
         return X, {}

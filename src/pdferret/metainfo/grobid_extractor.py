@@ -1,12 +1,11 @@
 import io
-import os
 
 from pypdf import PdfReader, PdfWriter
 
-from . import scipdf
-from .base import BaseProcessor
-from .config import GROBID_URL
-from .datamodels import MetaInfo
+from .. import scipdf
+from ..base import BaseProcessor
+from ..config import GROBID_URL
+from ..datamodels import MetaInfo
 
 
 class GROBIDMetaExtractor(BaseProcessor):
