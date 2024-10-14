@@ -56,6 +56,7 @@ class LLMMetaExtractor(BaseProcessor):
             user_prompt=useful_info,
             system_prompt=SYSTEM_PROMPT,
             max_tokens=None,
+            temperature=0.0,
         )
         if summary_resp:
             return summary_resp.summary
