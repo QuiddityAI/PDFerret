@@ -27,6 +27,7 @@ class PDFChunk:
     coordinates: List[Tuple[float, float]] = None
     section: str = ""
     prefix: str = ""
+    non_embeddable_content: str = ""
     text: str = ""
     suffix: str = ""
     locked: bool = False
