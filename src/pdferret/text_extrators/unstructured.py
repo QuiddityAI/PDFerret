@@ -181,7 +181,7 @@ class UnstructuredGeneralExtractor(BaseProcessor):
                 chunk_kwargs["chunk_type"] = ChunkType.TABLE
                 chunk_kwargs["locked"] = True
             else:
-                chunk_kwargs = dict(text=eldict["text"], chunk_type=ChunkType.TEXT, locked=True)
+                chunk_kwargs = dict(text=eldict["text"], chunk_type=ChunkType.TEXT, locked=False)
             try:
                 page = eldict["metadata"]["page_number"]
             except KeyError:
