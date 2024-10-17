@@ -33,6 +33,9 @@ class PDFChunk:
     locked: bool = False
     chunk_type: ChunkType = ChunkType.TEXT
     # true if joining of this chunk with others is forbidden, e.g. fro figure captions
+    # hiddenattributes:
+    # reliable - if the text is reliable and don't need to be cleaned
+    # requires_fill - if the text requires filling from the metadata (e.g. with llm)
 
 
 @dataclass

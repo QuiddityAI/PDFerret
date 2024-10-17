@@ -1,3 +1,4 @@
+import os
 import uuid
 from typing import List
 
@@ -5,14 +6,17 @@ from .chunking import StandardChunker
 from .datamodels import FileFeatures, MetaInfo, PDFDoc, PDFError, PDFFile
 from .file_info_extractor import DummyFileInfoExtractor, FileInfoExtractor
 from .metainfo.grobid_extractor import DummyMetaExtractor, GROBIDMetaExtractor
-from .metainfo.llm_extractor import LLMMetaExtractor
+from .postprocessing.postprocessor import PostProcessor
 from .text_extrators.grobid import GROBIDTextExtractor
+from .text_extrators.tika import TikaExtractor
 from .text_extrators.unstructured import UnstructuredGeneralExtractor, UnstructuredTextExtractor
-from .thumbnails.thumbnailer import Thumbnailer
 
 meta_extractors = {"grobid": GROBIDMetaExtractor, "dummy": DummyMetaExtractor}
-text_extractors = {"grobid": GROBIDTextExtractor, "unstructured": UnstructuredTextExtractor}
+text_extractors = {"grobid": GROBIDTextExtractor, "unstructured": UnstructuredTextExtractor, "tika": TikaExtractor}
+general_extractors = {"unstructured": UnstructuredGeneralExtractor, "tika": TikaExtractor}
 chunkers = {"standard": StandardChunker}
+
+tika_sever_url = os.getenv("PDFERRET_TIKA_SERVER_URL", "http://localhost:9998")
 
 
 class PDFerret:
@@ -20,7 +24,9 @@ class PDFerret:
         self,
         meta_extractor="grobid",
         text_extractor="grobid",
+        general_extractor="unstructured",
         chunker="standard",
+        tikaserver=None,
         thumbnails=True,
         llm_summary=False,
         llm_table_description=False,
@@ -44,30 +50,34 @@ class PDFerret:
             text_extractor (str or Extractor instance): class performing text body extraction. Defaults to "grobid".
             chunker (str or Processor instance): class performing chunking. Defaults to "standard".
         """
+        tikaserver = tikaserver or tika_sever_url
+
         if isinstance(meta_extractor, str):
             self.meta_extractor = meta_extractors[meta_extractor]()
         else:
             self.meta_extractor = meta_extractor
         if isinstance(text_extractor, str):
-            self.text_extractor = text_extractors[text_extractor]()
+            kwargs = {"tika_url": tikaserver} if text_extractor == "tika" else {}
+            self.text_extractor = text_extractors[text_extractor](**kwargs)
         else:
             self.text_extractor = text_extractor
+        if isinstance(general_extractor, str):
+            kwargs = {"tika_url": tikaserver} if general_extractor == "tika" else {}
+            self.general_extractor = general_extractors[general_extractor](**kwargs)
+        else:
+            self.general_extractor = general_extractor
         if isinstance(chunker, str):
             self.chunker = chunkers[chunker]()
         else:
             self.chunker = chunker
         self.fileinfoextractor = FileInfoExtractor()
-        self.thumbnails = thumbnails
-        if thumbnails:
-            self.thumbnailer = Thumbnailer()
-
-        self.llm_summary = llm_summary
-        if llm_summary:
-            self.llm_meta_extractor = LLMMetaExtractor()
-        # TODO: implement table description extraction
-        self.llm_table_description = llm_table_description
-        self.llm_model = llm_model
-        self.llm_provider = llm_provider
+        self.postprocessor = PostProcessor(
+            thumbnails=thumbnails,
+            llm_summary=llm_summary,
+            llm_table_description=llm_table_description,
+            llm_model=llm_model,
+            llm_provider=llm_provider,
+        )
 
     def _sort_results(self, docs, failed_all, pdfs):
         # docs: extracted data, failed_all: dictionary containing all error messages
@@ -101,15 +111,6 @@ class PDFerret:
         else:
             return False
         return file_start.startswith(pdf_signature)
-
-    def _postprocess(self, docs: List[PDFDoc]) -> List[PDFDoc]:
-        if self.thumbnails:
-            # thumbnailer never returns errors, instead it fails silently
-            # and sets thumbnail to None if it fails
-            docs, failed = self.thumbnailer.process_batch(docs)
-        if self.llm_summary:
-            docs, failed = self.llm_meta_extractor.process_batch(docs)
-        return docs
 
     def extract_batch(self, files: List[PDFFile]) -> tuple[List[PDFDoc], List[PDFError]]:
         failed_all = {}
@@ -150,7 +151,7 @@ class PDFerret:
                 docs, failed = self.chunker.process_batch(docs)
                 failed_all.update(failed)
 
-            docs = self._postprocess(docs)
+            docs = self.postprocessor.process_batch(docs)
             return self._sort_results(docs, failed_all, files)
 
         # otherwise extract meta and text separately then combine
@@ -167,7 +168,7 @@ class PDFerret:
         if self.chunker:
             docs, failed = self.chunker.process_batch(docs)
             failed_all.update(failed)
-        docs = self._postprocess(docs)
+        docs = self.postprocessor.process_batch(docs)
         return self._sort_results(docs, failed_all, files)
 
     def _process_nonpdf_files(self, failed_all, other_files, docs):
@@ -189,7 +190,6 @@ class PDFerret:
         dummy_extractor = DummyFileInfoExtractor()
         other_metainfo, failed = dummy_extractor.process_batch(other_files)
         failed_all.update(failed)
-        general_extractor = UnstructuredGeneralExtractor()
-        nonpdf_docs, failed = general_extractor.process_batch(other_metainfo)
+        nonpdf_docs, failed = self.general_extractor.process_batch(other_metainfo)
         docs.update(nonpdf_docs)
         failed_all.update(failed)

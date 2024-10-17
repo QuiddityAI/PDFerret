@@ -45,8 +45,7 @@ def test_pdfium_thumbnailer(sample_pdfdoc_pdf):
 def test_main_thumbnailer(sample_pdfdoc_docx, sample_pdfdoc_pdf):
     thumbnailer = Thumbnailer()
     X = {"test.docx": sample_pdfdoc_docx, "test.pdf": sample_pdfdoc_pdf}
-    processed_X, errors = thumbnailer.process_batch(X)
-    assert not errors
+    processed_X = thumbnailer.process_batch(X)
     assert "test.docx" in processed_X
     assert "test.pdf" in processed_X
     assert b"\x89PNG" in processed_X["test.docx"].metainfo.thumbnail

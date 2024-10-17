@@ -53,7 +53,7 @@ def base_api_url():
     return "http://127.0.0.1:8012"
 
 
-def test_api_thumbnails_llm_summary_pdf(sample_pdf_path, base_api_url):
+def test_api_thumbnails_llm_summary_pdf_unstructured(sample_pdf_path, base_api_url):
     url = f"{base_api_url}/process_files_by_stream"
     headers = {"accept": "application/json"}
     with open(sample_pdf_path, "rb") as f:
@@ -87,13 +87,83 @@ def test_api_thumbnails_llm_summary_pdf(sample_pdf_path, base_api_url):
     assert doc["metainfo"]["file_features"]["filename"] == os.path.basename(sample_pdf_path)
 
 
-def test_api_thumbnails_llm_summary_doc_german(sample_doc_german_path, base_api_url):
+def test_api_thumbnails_llm_summary_doc_german_unstructured(sample_doc_german_path, base_api_url):
     url = f"{base_api_url}/process_files_by_stream"
     headers = {"accept": "application/json"}
     with open(sample_doc_german_path, "rb") as f:
         files = {"pdfs": (os.path.basename(sample_doc_german_path), f.read(), "application/msword")}
     data = {
         "text_extractor": "unstructured",
+        "meta_extractor": "dummy",
+        "chunker": "standard",
+        "thumbnails": True,
+        "llm_summary": True,
+        "llm_table_description": False,
+        "llm_model": "llama-3.2-3b-preview",
+        "llm_provider": "groq",
+    }
+    data = {"params": json.dumps(data)}
+
+    # Send the POST request
+    response = requests.post(url, headers=headers, files=files, data=data)
+
+    # Assertions to check the response status and content
+    assert response.status_code == 200, f"Expected status code 200, got {response.status_code}"
+    assert response.headers["Content-Type"] == "application/json", "Response is not JSON"
+    response_json = response.json()
+
+    doc = response_json["extracted"][0]
+    assert all([kwd in doc["metainfo"]["abstract"] for kwd in ["Sierra Leone", "Konflikt"]])
+
+    png = base64.b64decode(doc["metainfo"]["thumbnail"])
+    assert png.startswith(b"\x89PNG\r\n\x1a\n"), "Thumbnail is not a PNG image"
+    assert "Das Zertifikationssystem ist im Grunde eine Regelung" in doc["chunks"][10]["text"]
+    assert doc["metainfo"]["file_features"]["filename"] == os.path.basename(sample_doc_german_path)
+
+
+def test_api_thumbnails_llm_summary_pdf_tika(sample_pdf_path, base_api_url):
+    url = f"{base_api_url}/process_files_by_stream"
+    headers = {"accept": "application/json"}
+    with open(sample_pdf_path, "rb") as f:
+        files = {"pdfs": (os.path.basename(sample_pdf_path), f.read(), "application/pdf")}
+    data = {
+        "text_extractor": "tika",
+        "general_extractor": "tika",
+        "meta_extractor": "dummy",
+        "chunker": "standard",
+        "thumbnails": True,
+        "llm_summary": True,
+        "llm_table_description": False,
+        "llm_model": "llama-3.2-3b-preview",
+        "llm_provider": "groq",
+    }
+    data = {"params": json.dumps(data)}
+
+    # Send the POST request
+    response = requests.post(url, headers=headers, files=files, data=data)
+
+    # Assertions to check the response status and content
+    assert response.status_code == 200, f"Expected status code 200, got {response.status_code}"
+    assert response.headers["Content-Type"] == "application/json", "Response is not JSON"
+    response_json = response.json()
+
+    doc = response_json["extracted"][0]
+    assert all([kwd in doc["metainfo"]["abstract"] for kwd in ["Transformer", "attention"]])
+
+    png = base64.b64decode(doc["metainfo"]["thumbnail"])
+    assert png.startswith(b"\x89PNG\r\n\x1a\n"), "Thumbnail is not a PNG image"
+    assert "Each layer has two sub layers" in doc["chunks"][10]["text"]
+    assert doc["metainfo"]["file_features"]["filename"] == os.path.basename(sample_pdf_path)
+
+
+def test_api_thumbnails_llm_summary_doc_german_tika(sample_doc_german_path, base_api_url):
+    url = f"{base_api_url}/process_files_by_stream"
+    headers = {"accept": "application/json"}
+    with open(sample_doc_german_path, "rb") as f:
+        files = {"pdfs": (os.path.basename(sample_doc_german_path), f.read(), "application/msword")}
+    data = {
+        "text_extractor": "tika",
+        "general_extractor": "tika",
         "meta_extractor": "dummy",
         "chunker": "standard",
         "thumbnails": True,

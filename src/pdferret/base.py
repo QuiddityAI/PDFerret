@@ -86,7 +86,9 @@ class BaseProcessor(Parallelizable):
         else:
             raise TypeError(f"This class operates on {self.operates_on} type but {type(inp)} is given")
 
-    def process_batch(self, X):
+    def process_batch(
+        self, X: Dict[str, PDFDoc | MetaInfo | PDFFile]
+    ) -> tuple[Dict[str, PDFDoc | PDFChunk | MetaInfo], Dict[str, PDFError]]:
         return self._process_batch(X)
 
     @abstractmethod

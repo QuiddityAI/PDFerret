@@ -19,7 +19,7 @@ def make_thumnail_pdfium(file: str, output_dir: str):
 
 
 class PDFiumThumbnailer(BaseProcessor):
-    parallel = False
+    parallel = "process"
     operates_on = PDFDoc
 
     def process_single(self, doc: PDFDoc) -> PDFDoc:

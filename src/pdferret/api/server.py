@@ -18,8 +18,9 @@ PydanticPDFError = pydantic_dataclass(PDFError)
 
 
 class PDFerretParams(BaseModel):
-    text_extractor: Union[Literal["grobid", "unstructured", "dummy"], None] = "grobid"
+    text_extractor: Union[Literal["grobid", "unstructured", "dummy", "tika"], None] = "grobid"
     meta_extractor: Union[Literal["grobid", "dummy"], None] = "grobid"
+    general_extractor: Union[Literal["unstructured", "tika"], None] = "unstructured"
     chunker: Union[Literal["standard"], None] = "standard"
     thumbnails: Union[bool, None] = True
     llm_summary: Union[bool, None] = False

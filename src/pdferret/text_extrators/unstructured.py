@@ -1,9 +1,6 @@
-import logging
 from typing import Dict
 
 import numpy as np
-from llmonkey.llmonkey import LLMonkey
-from prometheus_client import Summary
 from pydantic import BaseModel
 from unstructured.documents import elements as doc_elements
 from unstructured.partition.auto import partition
@@ -88,38 +85,45 @@ class UnstructuredTextExtractor(BaseProcessor):
         elements = partition_pdf(**input_kwargs, languages=self.languages)
         chunks = []
         for el in elements:
-            if not isinstance(el, (doc_elements.NarrativeText, doc_elements.Text)):
+            if not isinstance(el, (doc_elements.NarrativeText, doc_elements.Text, doc_elements.Table)):
                 continue
 
-            eldict = el.to_dict()
-            text = eldict["text"]
-            if len(text) < self.min_text_len:
-                continue
+            if isinstance(el, doc_elements.Table):
+                chunk_kwargs = dict(
+                    non_embeddable_content=el.metadata.text_as_html, chunk_type=ChunkType.TABLE, locked=True
+                )
+                requires_fill = True  # mark it as requiring fill to generate it during postporcessing
+            else:
+                eldict = el.to_dict()
+                text = eldict["text"]
+                if len(text) < self.min_text_len:
+                    continue
+                chunk_kwargs = dict(text=text, chunk_type=ChunkType.TEXT, locked=False)
+                requires_fill = False
+            try:
+                coords = eldict["metadata"]["coordinates"]
+                norm_coords = [
+                    (p[0] / coords["layout_width"], p[1] / coords["layout_height"]) for p in coords["points"]
+                ]
 
-            coords = eldict["metadata"]["coordinates"]
-            norm_coords = [(p[0] / coords["layout_width"], p[1] / coords["layout_height"]) for p in coords["points"]]
+                xmin, xmax, ymin, ymax = extract_bbox(norm_coords)
+                chunk_kwargs["coordinates"] = [(xmin, ymin), (xmax, ymax)]
+            except KeyError:
+                coords = None
 
-            xmin, xmax, ymin, ymax = extract_bbox(norm_coords)
+            try:
+                chunk_kwargs["page"] = eldict["metadata"]["page_number"]
+            except KeyError:
+                chunk_kwargs["page"] = None
 
-            chunk = PDFChunk(
-                page=eldict["metadata"]["page_number"], text=text, coordinates=[(xmin, ymin), (xmax, ymax)]
-            )
+            chunk = PDFChunk(**chunk_kwargs)
+            chunk.requires_fill = requires_fill
             chunks.append(chunk)
         return PDFDoc(metainfo=meta, chunks=chunks)
 
 
 class UnstructuredTextExtractorSerial(UnstructuredTextExtractor):
     parallel = None
-
-
-class LLMTableResponse(BaseModel):
-    description: str
-
-
-SYSTEM_PROMPT = """You are a librarian, performing indexing of the library.
-You will be provided with a table encoded as HTML. Write a very short summary
-(no longer than 4 sentences) for it. Only include semantic information useful to find this table.
-Return output as raw json without any extra characters, according to schema {"description": description you extracted}"""
 
 
 class UnstructuredGeneralExtractor(BaseProcessor):
@@ -132,9 +136,6 @@ class UnstructuredGeneralExtractor(BaseProcessor):
         min_text_len=20,
         batch_size=None,
         n_proc=None,
-        llm_table_description=True,
-        llm_model="llama-3.2-3b-preview",
-        llm_provider="groq",
     ):
         """
         strategy, languages - passed to unstructured partition_pdf
@@ -143,10 +144,6 @@ class UnstructuredGeneralExtractor(BaseProcessor):
         super().__init__(n_proc=n_proc, batch_size=batch_size)
         self.languages = list(languages)
         self.min_text_len = min_text_len
-        self.llm_table_description = llm_table_description
-        self.llm_model = llm_model
-        self.llm_provider = llm_provider
-        self.llmonkey = LLMonkey()
 
     def _process_batch(self, X: Dict[str, MetaInfo]):
         parsed = {}
@@ -177,43 +174,22 @@ class UnstructuredGeneralExtractor(BaseProcessor):
                 continue
             eldict = el.to_dict()
             if isinstance(el, doc_elements.Table):
-                chunk_kwargs = self._handle_table(el)
-                chunk_kwargs["chunk_type"] = ChunkType.TABLE
-                chunk_kwargs["locked"] = True
+                chunk_kwargs = dict(
+                    non_embeddable_content=el.metadata.text_as_html, chunk_type=ChunkType.TABLE, locked=True
+                )
+                requires_fill = True  # mark it as requiring fill to generate it during postporcessing
             else:
                 chunk_kwargs = dict(text=eldict["text"], chunk_type=ChunkType.TEXT, locked=False)
+                requires_fill = False
             try:
                 page = eldict["metadata"]["page_number"]
             except KeyError:
                 page = None
             chunk = PDFChunk(page=page, coordinates=None, **chunk_kwargs)
             chunk.reliable = True
+            chunk.requires_fill = requires_fill
             chunks.append(chunk)
-            languages.append(detect_language(chunk_kwargs["text"]))
+            languages.append(detect_language(chunk.text))
 
         meta.language = max(set(languages), key=languages.count)
         return PDFDoc(metainfo=meta, chunks=chunks)
-
-    def _handle_table(self, el: doc_elements.Table):
-        table_as_html = el.metadata.text_as_html
-        if self.llm_table_description:
-            text = self._llm_table_summary(table_as_html)
-            return dict(text=text, non_embeddable_content=table_as_html)
-        else:
-            return dict(non_embeddable_content=table_as_html)
-
-    def _llm_table_summary(self, table_as_html):
-        descr_resp, raw_resp = self.llmonkey.generate_structured_response(
-            self.llm_provider,
-            self.llm_model,
-            system_prompt=SYSTEM_PROMPT,
-            data_model=LLMTableResponse,
-            user_prompt=table_as_html,
-            temperature=0.0,
-            max_tokens=None,
-        )
-        if descr_resp:
-            return descr_resp.description
-        else:
-            logging.warning("No table description was returned by LLM")
-            return ""

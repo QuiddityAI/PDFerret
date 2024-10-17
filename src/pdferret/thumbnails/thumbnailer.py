@@ -1,9 +1,5 @@
-import os
-import subprocess
-import tempfile
 from typing import Dict
 
-from ..base import BaseProcessor
 from ..datamodels import MetaInfo, PDFError
 from .libreoffice import LibreOfficeThumbnailer
 from .pdf import PDFiumThumbnailer
@@ -20,15 +16,11 @@ extension_map = {
 }
 
 
-class Thumbnailer(BaseProcessor):
-    parallel = False
-    operates_on = MetaInfo
+class Thumbnailer:
+    def __init__(self) -> None:
+        pass
 
-    def process_single(self, meta: MetaInfo) -> MetaInfo:
-        # just dummy, actual processing is in _process_batch
-        return meta
-
-    def _process_batch(self, X: Dict[str, MetaInfo]) -> tuple[Dict[str, MetaInfo], Dict[str, PDFError]]:
+    def process_batch(self, X: Dict[str, MetaInfo]) -> Dict[str, MetaInfo]:
         # get the extension of the file
         # group files by extension, prepare batch for each extension
         # use corresponding thumbnailer for each batch
@@ -44,4 +36,4 @@ class Thumbnailer(BaseProcessor):
                 processed_batch, errors = thumbnailer_instance.process_batch(batch)
                 for k, v in processed_batch.items():
                     X[k] = v
-        return X, {}
+        return X
