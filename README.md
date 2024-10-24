@@ -7,6 +7,7 @@ pdferret - an aggregator for multiple PDF information extractors
 1. To install the package, use `pip install .` in the source folder, which will install package with all dependencies
 2. On minimal Ubuntu systems (e.g. in a python Docker image), `sudo apt install libgl1` might be needed for opencv
 3. PDFerret relies on GROBID for extracting some parts of the text. Run `docker compose -f docker-compose-grobid.yml up` to run GROBID server. `docker-compose-grobid-big.yml` contains GROBID with ML models, thus produces much bigger image and significantly slower, while improvements are not so clear.
+4. PDFerret relies on Tika for processing general documents. This requries up to date Tika (tested on apache/tika:3.0.0.0-BETA2-full) up and running on localhost:9998. You can overwrite tika server address by setting env var `PDFERRET_TIKA_SERVER_URL`. Please note that python tika package used as a client in this lib can download and run it's own version of Tika if the server is not found, which can lead to unpredictable results.
 
 # Configuration
 
@@ -15,6 +16,7 @@ Following env variables are supported to configure PDFerret:
 - `PDFERRET_NPROC` - sets number of processors used for parallel processing for both metainfo and text extractors
 - `PDFERRET_BATCH_SIZE` - sets batch size for parallel processing, i.e. how many items are processed between fork and join. Must be at least `PDFERRET_NPROC`, but shouldn't have strong influence on performance otherwise
 - `PDFERRET_MAX_PAGES` - all pdfs will be cropped to first MAX_PAGES
+- `PDFERRET_TIKA_SERVER_URL` - address of the Tika
 
 # Usage
 
@@ -44,3 +46,5 @@ print(resp)
 # Example
 
 see `demo_pdferret.ipynb` for example of usage.
+
+TODO: write section about Tika
