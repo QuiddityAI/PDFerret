@@ -6,7 +6,7 @@ import pytest
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../src")))
 from pdferret.datamodels import FileFeatures, MetaInfo, PDFDoc  # noqa: E402
 from pdferret.thumbnails.libreoffice import LibreOfficeThumbnailer  # noqa: E402
-from pdferret.thumbnails.pdf import PDFiumThumbnailer  # noqa: E402
+from pdferret.thumbnails.pdf import PDF2ImageThumbnailer  # noqa: E402
 from pdferret.thumbnails.thumbnailer import Thumbnailer  # noqa: E402
 
 
@@ -34,7 +34,7 @@ def test_libreoffice_thumbnailer(sample_pdfdoc_docx):
 
 
 def test_pdfium_thumbnailer(sample_pdfdoc_pdf):
-    thumbnailer = PDFiumThumbnailer()
+    thumbnailer = PDF2ImageThumbnailer()
     X = {"test": sample_pdfdoc_pdf}
     processed_X, errors = thumbnailer._process_batch(X)
     assert not errors

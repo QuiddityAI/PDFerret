@@ -2,24 +2,26 @@ version: "3.8"
 services:
 
   pdferret:
-    build: .
+    build:
+      context: .
     image: pdferret
     ports:
       - "127.0.0.1:58080:80"
+    dns:
+      - 8.8.8.8
+      - 4.4.4.4
     environment:
       - PDFERRET_GROBID_URL=http://grobid:8070
-      - PDFERRET_MAX_PAGES=30
+      - PDFERRET_TIKA_SERVER_URL=http://tika:9998
+      - LLMONKEY_GROQ_API_KEY=${LLMONKEY_GROQ_API_KEY}
+      - LLMONKEY_OPENAI_API_KEY=${LLMONKEY_OPENAI_API_KEY}
+      - LLMONKEY_DEEPINFRA_API_KEY=${LLMONKEY_DEEPINFRA_API_KEY}
+      - LLMONKEY_COHERE_API_KEY=${LLMONKEY_COHERE_API_KEY}
+      - LLMONKEY_MISTRAL_API_KEY=${LLMONKEY_MISTRAL_API_KEY}
+      - LLMONKEY_NEBIUS_API_KEY=${LLMONKEY_NEBIUS_API_KEY}
 
-  grobid:
-    image: lfoppiano/grobid:latest-develop
-    init: true
+
+  tika :
+    image: apache/tika:3.0.0.0-BETA2-full
     ports:
-      - "127.0.0.1:8070:8070"
-      - "127.0.0.1:8071:8071"
-    environment:
-      - grobid__3rdparty__pdf2xml__memory__limit__mb=8000
-    deploy:
-      resources:
-        limits:
-          cpus: "8"
-          memory: "8192mb"
+      - "9998:9998"

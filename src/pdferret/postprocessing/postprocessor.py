@@ -1,6 +1,6 @@
 from ..datamodels import PDFDoc
 from ..thumbnails.thumbnailer import Thumbnailer
-from .llm import LLMPostprocessor
+from .llm_postprocessor import LLMPostprocessor
 
 
 class PostProcessor(object):

@@ -76,7 +76,7 @@ class BaseProcessor(Parallelizable):
     """Base class that operates on pdfs or extracted data"""
 
     parallel = False
-    operates_on = int  # one of PDFDoc, MetaInfo, Chunk, PDFFile
+    operates_on = PDFDoc  # one of PDFDoc, MetaInfo, Chunk, PDFFile
 
     def _process_single(self, inp):
         # isinstance can't simply check against Union type,
@@ -86,11 +86,9 @@ class BaseProcessor(Parallelizable):
         else:
             raise TypeError(f"This class operates on {self.operates_on} type but {type(inp)} is given")
 
-    def process_batch(
-        self, X: Dict[str, PDFDoc | MetaInfo | PDFFile]
-    ) -> tuple[Dict[str, PDFDoc | PDFChunk | MetaInfo], Dict[str, PDFError]]:
+    def process_batch(self, X: Dict[str, PDFDoc]) -> tuple[Dict[str, PDFDoc], Dict[str, PDFError]]:
         return self._process_batch(X)
 
     @abstractmethod
-    def process_single(self, X: PDFDoc | MetaInfo | PDFFile) -> PDFDoc | PDFChunk | MetaInfo:
+    def process_single(self, X: PDFDoc) -> PDFDoc:
         pass

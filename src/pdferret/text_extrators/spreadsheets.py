@@ -6,9 +6,10 @@ from contextlib import closing
 from io import BytesIO
 from typing import List
 
-import openpyxl
 import pypandoc
 from tika import parser, unpack
+
+from pdferret.datamodels import PDFChunk, PDFDoc
 
 from ..base import BaseProcessor
 from ..datamodels import ChunkType, PDFChunk, PDFDoc
@@ -73,6 +74,23 @@ def _parse_att(binary):
         return attachments
 
 
+def filter_line(line):
+    if line.startswith("![]("):
+        return True
+    if line.startswith(":::"):
+        return True
+    if len(line) <= 2:
+        return True
+
+
+def split_text_by_lines(text: str, lines_per_chunk: int) -> List[str]:
+    lines = text.split("\n")
+    # remove images from markdown
+    lines = [line for line in lines if not filter_line(line)]
+    chunks = ["\n".join(lines[i : i + lines_per_chunk]) for i in range(0, len(lines), lines_per_chunk)]
+    return chunks
+
+
 class TikaExtractor(BaseProcessor):
     """
     extract text and figures from PDFs using Apache Tika. Uses pandoc to convert the text to markdown.
@@ -86,36 +104,28 @@ class TikaExtractor(BaseProcessor):
         self,
         tika_url,
         lines_per_chunk=15,
-        tika_ocr_strategy="AUTO",
-        save_raw_metadata=False,
+        tika_ocr_strategy="auto",
+        save_raw_metadata=True,
         batch_size=None,
         n_proc=None,
     ):
         super().__init__(batch_size=batch_size, n_proc=n_proc)
         self.tika_url = tika_url
-        if tika_ocr_strategy not in ["AUTO", "OCR_ONLY", "NO_OCR", "OCR_AND_TEXT_EXTRACTION"]:
-            raise ValueError(
-                "Invalid Tika OCR strategy, must be one of 'AUTO', 'OCR_ONLY', 'NO_OCR', 'OCR_AND_TEXT_EXTRACTION'"
-            )
+        if tika_ocr_strategy not in ["auto", "ocr_only", "no_ocr", "ocr_and_text_extraction"]:
+            raise ValueError("Invalid Tika OCR strategy")
         self.tika_ocr_strategy = tika_ocr_strategy
         self.lines_per_chunk = lines_per_chunk
         self.save_raw_metadata = save_raw_metadata
 
     def process_single(self, doc: PDFDoc) -> PDFDoc:
         headers = {"X-Tika-PDFocrStrategy": self.tika_ocr_strategy}
-        parsed = parser.from_file(
-            doc.metainfo.file_features.file,
-            xmlContent=True,
-            raw_response=False,
-            headers=headers,
-            serverEndpoint=self.tika_url,
-        )
+        parsed = parser.from_file(doc.metainfo.file_features.file, xmlContent=True, raw_response=False, headers=headers)
 
         if self.save_raw_metadata:
             doc.metainfo.extra_metainfo["pdf_metadata"] = parsed["metadata"]
 
         markdown = pypandoc.convert_text(parsed["content"], to="markdown", format="html")
-        for chunk in self.split_text_by_lines(markdown, self.lines_per_chunk):
+        for chunk in split_text_by_lines(markdown, self.lines_per_chunk):
             if not chunk:
                 continue
             doc.chunks.append(PDFChunk(text=chunk, chunk_type=ChunkType.TEXT))
@@ -123,22 +133,6 @@ class TikaExtractor(BaseProcessor):
         fig_chunks = self._extract_figures(attachments)
         doc.chunks.extend(fig_chunks)
         return doc
-
-    @staticmethod
-    def _filter_line(line):
-        if line.startswith("![]("):
-            return True
-        if line.startswith(":::"):
-            return True
-        if len(line) <= 2:
-            return True
-
-    def split_text_by_lines(self, text: str, lines_per_chunk: int) -> List[str]:
-        lines = text.split("\n")
-        # remove images from markdown
-        lines = [line for line in lines if not self._filter_line(line)]
-        chunks = ["\n".join(lines[i : i + lines_per_chunk]) for i in range(0, len(lines), lines_per_chunk)]
-        return chunks
 
     def _extract_text(self, soup):
         p_with_text = [p for p in soup.find_all("p") if p.get_text(strip=True)]
@@ -195,7 +189,7 @@ class TikaExtractor(BaseProcessor):
             return authors.split(";")
 
     def _get_attachments(self, file):
-        headers = {"X-Tika-PDFextractInlineImages": "true", "X-Tika-PDFocrStrategy": self.tika_ocr_strategy}
+        headers = {"X-Tika-PDFextractInlineImages": "true", "X-Tika-PDFocrStrategy": "AUTO"}
         code, binary = unpack.parse1(
             "unpack",
             file,
@@ -209,31 +203,3 @@ class TikaExtractor(BaseProcessor):
         if code != 200:
             raise ValueError(f"Bad return code, {code}")
         return _parse_att(binary)
-
-
-class TikaSpreadsheetExtractor(TikaExtractor):
-    @staticmethod
-    def _filter_line(line):
-        if line.startswith("![]("):
-            return True
-        if line.startswith(":::"):
-            return True
-        # if line is empty or consists of only spaces or dashes
-        if re.match(r"^([\s-]+)$", line):
-            return True
-        if len(line) <= 2:
-            return True
-
-    def split_text_by_lines(self, text: str, lines_per_chunk: int) -> List[str]:
-        text = text.replace("ERROR:#REF!", "")
-        text = re.sub(" +", " ", text)
-        return super().split_text_by_lines(text, lines_per_chunk)
-
-    def _process_single(self, pdfdoc: PDFDoc) -> PDFDoc:
-        doc = super()._process_single(pdfdoc)
-        doc.metainfo.extra_metainfo["sheet names"] = self._extract_sheets(doc.metainfo.file_features.file)
-        return doc
-
-    def _extract_sheets(self, file: str):
-        wb = openpyxl.load_workbook(file)
-        return wb.sheetnames

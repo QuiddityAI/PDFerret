@@ -1,24 +1,10 @@
 import os
-import subprocess
 import tempfile
 from typing import Dict
 
 from ..base import BaseProcessor
 from ..datamodels import PDFDoc, PDFError
-
-
-def run_command(command):
-    """
-    Run a shell command and return the output, error and return code.
-
-    :param command: Command to be executed as a string.
-    :return: A tuple containing (stdout, stderr, return_code).
-    """
-    try:
-        result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        return result.stdout, result.stderr, result.returncode
-    except subprocess.CalledProcessError as e:
-        return e.stdout, e.stderr, e.returncode
+from ..utils.shell_run import run_command
 
 
 def make_thumbnail_libreoffice(files: list[str], output_dir: str):
@@ -42,6 +28,8 @@ class LibreOfficeThumbnailer(BaseProcessor):
         return doc
 
     def _process_batch(self, X: Dict[str, PDFDoc]) -> tuple[Dict[str, PDFDoc], Dict[str, PDFError]]:
+        # process all files in a serial batch
+        # libreoffice is slow to start but fast to convert, so we don't need to parallelize
         with tempfile.TemporaryDirectory() as output_dir:
             stdout, stderr = make_thumbnail_libreoffice(
                 [doc.metainfo.file_features.file for doc in X.values()], output_dir

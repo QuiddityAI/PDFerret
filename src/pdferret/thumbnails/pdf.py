@@ -1,25 +1,24 @@
-import os
-import tempfile
-from typing import Dict
+import io
+from typing import Dict, List
 
-import pypdfium2 as pdfium
+from pdf2image import convert_from_path
 
 from ..base import BaseProcessor
-from ..datamodels import MetaInfo, PDFDoc, PDFError
+from ..datamodels import PDFDoc, PDFError
 
 
-def make_thumnail_pdfium(file: str, output_dir: str):
-    pdf = pdfium.PdfDocument(file)
-    first_page = pdf[0]
-    image = first_page.render(scale=1).to_pil()
-    base_fname = os.path.basename(file)
-    base_fname, _ = os.path.splitext(base_fname)
-    thumbnail_path = os.path.join(output_dir, f"{base_fname}.png")
-    image.save(thumbnail_path, "PNG")
+def convert_pdf_to_jpg(file: str) -> List[bytes]:
+    pages_as_pil = convert_from_path(file, first_page=0, last_page=1, dpi=100)
+    pil_page = pages_as_pil[0]
+    buff = io.BytesIO()
+    pil_page.save(buff, "JPEG")
+    raw_bytes = buff.getvalue()
+    buff.close()
+    return raw_bytes
 
 
-class PDFiumThumbnailer(BaseProcessor):
-    parallel = "process"
+class PDF2ImageThumbnailer(BaseProcessor):
+    parallel = "thread"
     operates_on = PDFDoc
 
     def process_single(self, doc: PDFDoc) -> PDFDoc:
@@ -27,16 +26,9 @@ class PDFiumThumbnailer(BaseProcessor):
         return doc
 
     def _process_batch(self, X: Dict[str, PDFDoc]) -> tuple[Dict[str, PDFDoc], Dict[str, PDFError]]:
-        with tempfile.TemporaryDirectory() as output_dir:
-            for doc in X.values():
-                meta = doc.metainfo
-                make_thumnail_pdfium(meta.file_features.file, output_dir)
-                base_name = os.path.basename(meta.file_features.file)
-                name, _ = os.path.splitext(base_name)
-                thumbnail_path = os.path.join(output_dir, f"{name}.png")
-                try:
-                    with open(thumbnail_path, "rb") as f:
-                        meta.thumbnail = f.read()
-                except FileNotFoundError:
-                    pass
+        for doc in X.values():
+            meta = doc.metainfo
+            thumbnail = convert_pdf_to_jpg(meta.file_features.file)
+            doc.metainfo.thumbnail = thumbnail
+
         return X, {}

@@ -2,7 +2,7 @@ from typing import Dict
 
 from ..datamodels import MetaInfo, PDFError
 from .libreoffice import LibreOfficeThumbnailer
-from .pdf import PDFiumThumbnailer
+from .pdf import PDF2ImageThumbnailer
 
 extension_map = {
     "docx": LibreOfficeThumbnailer,
@@ -11,7 +11,7 @@ extension_map = {
     "xlsx": LibreOfficeThumbnailer,
     "ppt": LibreOfficeThumbnailer,
     "pptx": LibreOfficeThumbnailer,
-    "pdf": PDFiumThumbnailer,
+    "pdf": PDF2ImageThumbnailer,
     "other": LibreOfficeThumbnailer,
 }
 

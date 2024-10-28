@@ -1,11 +1,10 @@
-nltk
 numpy
-pandas
-pypdf
-pyspellchecker
+openpyxl
+pdf2image
+pydantic
 requests
-unstructured[pdf]
-lingua-language-detector
-ocrmypdf
 fastapi[standard]
 python-multipart
+tika
+llmonkey @ git+https://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@github.com/Trel725/LLMonkey.git
+pypandoc

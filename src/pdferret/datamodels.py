@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import BinaryIO, List, Tuple, TypeAlias, Union
 
-PDFFile: TypeAlias = Union[str, BinaryIO, bytes]
+PDFFile: TypeAlias = str
 
 
 # enum for different types of document elements, such as text, figure, table, etc.
@@ -11,6 +11,7 @@ class ChunkType(Enum):
     FIGURE = "figure"
     TABLE = "table"
     EQUATION = "equation"
+    VISUAL_PAGE = "visual_page"
     OTHER = "other"
 
 
@@ -56,9 +57,11 @@ class MetaInfo:
     file_features: FileFeatures = None
     npages: int = None
     thumbnail: bytes = None
+    extra_metainfo: dict = field(default_factory=dict)
+    ai_metadata: str = ""
 
 
 @dataclass
 class PDFDoc:
     metainfo: MetaInfo = field(default_factory=MetaInfo)
-    chunks: List[PDFChunk] = field(default_factory=lambda: [PDFChunk()])
+    chunks: List[PDFChunk] = field(default_factory=lambda: [])

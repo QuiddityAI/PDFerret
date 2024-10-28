@@ -34,7 +34,7 @@ def combine_bboxes(coords):
 
 class GROBIDTextExtractor(BaseProcessor):
     parallel = "thread"
-    operates_on = MetaInfo
+    operates_on = PDFDoc
 
     def __init__(self, extract_meta=False, max_pages=30, grobid_url=None, batch_size=None, n_proc=None):
         super().__init__(n_proc=n_proc, batch_size=batch_size)
@@ -84,11 +84,11 @@ class GROBIDTextExtractor(BaseProcessor):
             chunks.append(ch)
         return chunks
 
-    def process_single(self, meta: MetaInfo) -> PDFDoc:
-        pdf = meta.file_features.file
+    def process_single(self, doc: PDFDoc) -> PDFDoc:
+        pdf = doc.metainfo.file_features.file
         # this will work for both filepath and BinaryIO
-        if meta.npages > self.max_pages:
-            reader = PdfReader(meta.file_features.file)
+        if doc.metainfo.npages > self.max_pages:
+            reader = PdfReader(doc.metainfo.file_features.file)
             buff = io.BytesIO()
             writer = PdfWriter()
             for i in range(self.max_pages):
@@ -97,7 +97,7 @@ class GROBIDTextExtractor(BaseProcessor):
             parsed = scipdf.parse_pdf_to_dict(buff.getvalue(), grobid_url=self.grobid_url)
 
         # special case for npages < max_pages and being BinaryIO
-        # unfortuntely there's no good way to check if something
+        # unfortunately there's no good way to check if something
         # is file-like object
         elif not isinstance(pdf, str):
             parsed = scipdf.parse_pdf_to_dict(
@@ -106,12 +106,13 @@ class GROBIDTextExtractor(BaseProcessor):
         else:
             parsed = scipdf.parse_pdf_to_dict(pdf, grobid_url=self.grobid_url)
         if self.extract_meta:
-            meta.doi = parsed["doi"]
-            meta.title = parsed["title"]
-            meta.authors = parsed["authors"]
-            meta.pub_date = parsed["pub_date"]
-            meta.abstract = parsed["abstract"]
+            doc.metainfo.doi = parsed["doi"]
+            doc.metainfo.title = parsed["title"]
+            doc.metainfo.authors = parsed["authors"]
+            doc.metainfo.pub_date = parsed["pub_date"]
+            doc.metainfo.abstract = parsed["abstract"]
 
         chunks = self._extract_chunks(parsed)
         chunks += self._extract_extra_text(parsed)
-        return PDFDoc(meta, chunks)
+        doc.chunks = chunks
+        return doc
