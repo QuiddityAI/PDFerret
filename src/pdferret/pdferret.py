@@ -31,12 +31,16 @@ class PDFerret:
             pipelines[file_type] = Pipeline(steps)
         return pipelines
 
-    def extract_batch(self, files: List[PDFFile], lang=None) -> tuple[List[PDFDoc], List[PDFError]]:
+    def extract_batch(
+        self, files: List[PDFFile] = None, pdfdocs: List[PDFDoc] = None, lang=None
+    ) -> tuple[List[PDFDoc], List[PDFError]]:
         """
         Extracts text and metadata from a batch of PDF files.
+        The files can be provided as list of paths to the file (PDFFile) or as list of PDFDoc objects.
 
         Args:
             files (List[PDFFile]): A list of PDFFile objects to be processed.
+            pdfdocs (List[PDFDoc]): A list of PDFDoc objects to be processed.
             lang (str, optional): The language to be used for extraction. Defaults to None.
 
         Returns:
@@ -44,17 +48,30 @@ class PDFerret:
             - List[PDFDoc]: A list of successfully processed PDFDoc objects.
             - List[PDFError]: A list of PDFError objects for files that failed to process.
         """
+        if pdfdocs and files:
+            raise ValueError("Provide either files or pdfdocs, not both.")
+        if not pdfdocs and not files:
+            raise ValueError("Provide either files or pdfdocs.")
+
         failed_all = {}
         processed_all = {}
 
-        files = {v: v for v in files}  # assign unique ids to every item, use filename as id
-        pdfdocs = {}
-        # create PDFDoc objects for each file
-        for key, file in files.items():
-            ffeatures = FileFeatures(filename=key, file=file)
-            meta = MetaInfo(file_features=ffeatures, language=lang)
-            doc = PDFDoc(metainfo=meta, chunks=[])
-            pdfdocs[key] = doc
+        # assign unique ids to every item, use filename as id
+        # need to keep track of the original filenames for the output order
+        # even if the files are provided as PDFDoc objects
+        files = (
+            {v: v for v in files}
+            if files
+            else {doc.metainfo.file_features.filename: doc.metainfo.file_features.filename for doc in pdfdocs}
+        )
+        pdfdocs = {doc.metainfo.file_features.filename: doc for doc in pdfdocs} if pdfdocs else {}
+        if not pdfdocs:
+            # create PDFDoc objects for each file
+            for key, file in files.items():
+                ffeatures = FileFeatures(filename=key, file=file)
+                meta = MetaInfo(file_features=ffeatures, language=lang)
+                doc = PDFDoc(metainfo=meta, chunks=[])
+                pdfdocs[key] = doc
 
         file_groups = self._classify_docs(pdfdocs)
         # for every file type, run the corresponding pipeline

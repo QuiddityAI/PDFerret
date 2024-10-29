@@ -56,7 +56,7 @@ class MetaInfo:
     language: str = ""
     file_features: FileFeatures = None
     npages: int = None
-    thumbnail: bytes = None
+    thumbnail: bytes | str = None
     extra_metainfo: dict = field(default_factory=dict)
     ai_metadata: str = ""
 

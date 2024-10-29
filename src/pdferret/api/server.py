@@ -1,14 +1,13 @@
 import base64
 import json
 import tempfile
-import uuid
-from typing import Annotated, Any, List, Literal, Union
+from typing import Annotated, Any, List, Literal
 
-from fastapi import FastAPI, File, Form, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel, ConfigDict, model_validator
 from pydantic.dataclasses import dataclass as pydantic_dataclass
 
-from ..datamodels import ChunkType, MetaInfo, PDFChunk, PDFDoc, PDFError
+from ..datamodels import ChunkType, FileFeatures, MetaInfo, PDFChunk, PDFDoc, PDFError
 from ..pdferret import PDFerret
 
 app = FastAPI()
@@ -17,11 +16,17 @@ PydanticPDFDoc = pydantic_dataclass(PDFDoc, config=ConfigDict(arbitrary_types_al
 PydanticPDFError = pydantic_dataclass(PDFError)
 
 
+class PerFileSettings(BaseModel):
+    lang: Literal["", "en", "de"] = ""
+    extra_metainfo: dict[str, str] = {}
+
+
 class PDFerretParams(BaseModel):
     vision_model: str = "Mistral_Pixtral"
     text_model: str = "Nebius_Llama_3_1_70B_fast"
     lang: Literal["en", "de"] = "en"
     return_images: bool = True
+    perfile_settings: dict[str, PerFileSettings] = {}
 
     # necessary to convert string to Pydantic model on-the-fly
     @model_validator(mode="before")
@@ -59,14 +64,15 @@ def _prepare_chunks(chunks: List[PDFChunk], return_images: bool = False) -> List
     return chunks
 
 
-@app.post("/process_files_by_path")
-def process_files_by_path(pdfs: List[str], params: PDFerretParams) -> PDFerretResults:
-    extractor = PDFerret(**params.model_dump())
-    extracted, errors = extractor.extract_batch(pdfs)
-    return PDFerretResults(
-        extracted=[PydanticPDFDoc(metainfo=e.metainfo, chunks=e.chunks) for e in extracted],
-        errors=[PydanticPDFError(exc=e.exc, traceback="\n".join(e.traceback), file=str(e.file)) for e in errors],
-    )
+# # This endpoint is not used in the final version
+# @app.post("/process_files_by_path")
+# def process_files_by_path(pdfs: List[str], params: PDFerretParams) -> PDFerretResults:
+#     extractor = PDFerret(**params.model_dump())
+#     extracted, errors = extractor.extract_batch(pdfs)
+#     return PDFerretResults(
+#         extracted=[PydanticPDFDoc(metainfo=e.metainfo, chunks=e.chunks) for e in extracted],
+#         errors=[PydanticPDFError(exc=e.exc, traceback="\n".join(e.traceback), file=str(e.file)) for e in errors],
+#     )
 
 
 @app.post("/process_files_by_stream")
@@ -74,22 +80,37 @@ def process_files_by_stream(
     pdfs: Annotated[List[UploadFile], File()], params: Annotated[PDFerretParams, Form()]
 ) -> PDFerretResults:
 
+    filanames = [f.filename for f in pdfs]
+    if len(set(filanames)) != len(filanames):
+        raise HTTPException(status_code=400, detail="Filenames must be unique")
+
     extractor = PDFerret(**params.model_dump())
+    perfile_settings = params.perfile_settings
+    for key in perfile_settings:
+        if key not in filanames:
+            raise HTTPException(status_code=400, detail=f"File {key} has settings, but is not found")
 
     # load actual file content from stream and save to temporary directory
     # handling files as stream is not parallelizable
+    pdfdocs = []
     with tempfile.TemporaryDirectory() as tmpdir:
         for pdf in pdfs:
-            pdf.filename = uuid.uuid4().hex + pdf.filename
             with open(f"{tmpdir}/{pdf.filename}", "wb") as f:
                 f.write(pdf.file.read())
-        extracted, errors = extractor.extract_batch([f"{tmpdir}/{pdf.filename}" for pdf in pdfs], lang=params.lang)
+            # create PDFDoc objects for each file
+            ffeatures = FileFeatures(filename=pdf.filename, file=f"{tmpdir}/{pdf.filename}")
+            # get perfile settings if available
+            lang = perfile_settings.get(pdf.filename, PerFileSettings()).lang or params.lang
+            extra_metainfo = perfile_settings.get(pdf.filename, PerFileSettings()).extra_metainfo
 
-    # restore original filename
-    for e in extracted:
-        original_filename = e.metainfo.file_features.filename.split("/")[-1]
-        e.metainfo.file_features.filename = original_filename[32:]  # 32 is length of uuid
+            meta = MetaInfo(file_features=ffeatures, language=lang, extra_metainfo=extra_metainfo)
+            doc = PDFDoc(metainfo=meta, chunks=[])
+            pdfdocs.append(doc)
+        # params.lang is a default language for all files unless specified in perfile_settings
+        extracted, errors = extractor.extract_batch(pdfdocs=pdfdocs, lang=params.lang)
 
+    # prepare results, remove extra metainfo and convert images to base64
+    # controlled by return_images parameter
     kwds = {"return_images": params.return_images}
     return PDFerretResults(
         extracted=[

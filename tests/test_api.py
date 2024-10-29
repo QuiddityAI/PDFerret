@@ -79,6 +79,13 @@ def test_extraction_via_api(
         "text_model": "Nebius_Llama_3_1_70B_fast",
         "lang": "en",
         "return_images": True,
+        "perfile_settings": {
+            os.path.basename(sample_doc_german_path): {"lang": "de"},
+            os.path.basename(sample_doc_path): {
+                "lang": "en",
+                "extra_metainfo": {"Author information": "John Doe"},
+            },
+        },
     }
     data = {"params": json.dumps(params)}
 
@@ -102,3 +109,6 @@ def test_extraction_via_api(
         assert len(chunks) > 0, "Expected at least one chunk in the document"
         assert "title" in metainfo, "Expected 'title' key in metainfo"
         assert metainfo["title"], "Expected 'title' to be non-empty"
+
+    assert docs[0]["metainfo"]["language"] == "de", "Expected German language for the first document"
+    assert docs[1]["metainfo"]["authors"] == ["John Doe"], "Expected author information for the second document"
