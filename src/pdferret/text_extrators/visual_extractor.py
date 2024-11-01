@@ -20,6 +20,9 @@ def convert_pdf_to_jpg(file: str, max_pages: int = 3) -> List[bytes]:
     return images
 
 
+# this didn't really work, probably would require a separate call to the model to make it reliable
+#    Add word "handwritten" or "hand-drawn" if the document is handwritten or hand-drawn.""",
+
 prompt = {
     "en": "You will receive a page of the document. Summarize the content in several sentences (no more than 250 words).",
     "de": "Sie erhalten eine Seite des Dokuments. Fassen Sie den Inhalt in mehreren Sätzen zusammen (nicht mehr als 250 Wörter).",

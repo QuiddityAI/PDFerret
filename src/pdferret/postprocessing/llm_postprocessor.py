@@ -29,41 +29,94 @@ system_prompt_summary = {
 For every provided entry, you have different information available. Write a short summary
 (up to 6-7 sentences) for it. Only include semantic information useful to search this document.
 If abstract is found in the information provided, return it instead of writing summary.
+It is crucial to always return abstract as is if it is found.
 Do not include information about article structure, number of pages, etc.
 If no information is found, return empty string.
 Return output as raw json without any extra characters, according to schema {"summary": summary you extracted}""",
     "de": """Sie sind Bibliothekar und führen die Indizierung der Bibliothek durch.
-Für jeden bereitgestellten Eintrag stehen Ihnen unterschiedliche Informationen zur Verfügung. Schreiben Sie eine sehr kurze Zusammenfassung
+Für jeden bereitgestellten Eintrag stehen Ihnen unterschiedliche Informationen zur Verfügung. Schreiben Sie eine kurze Zusammenfassung
 (bis zu 6-7 Sätze) dazu. Fügen Sie nur semantische Informationen ein, die für die Suche in diesem Dokument nützlich sind.
 Wenn in den bereitgestellten Informationen eine Zusammenfassung gefunden wird, geben Sie diese zurück, anstatt eine Zusammenfassung zu schreiben.
-Fügen Sie keine Informationen über Artikelstruktur, Seitenzahl usw. ein.
+Es ist wichtig, die Zusammenfassung immer so zurückzugeben, wie sie ist, wenn sie gefunden wird.
+Fügen Sie keine Informationen über Artikelstruktur, Seitenzahl usw. hinzu.
 Wenn keine Informationen gefunden werden, geben Sie eine leere Zeichenfolge zurück.
-Geben Sie die Ausgabe als Roh-JSON ohne zusätzliche Zeichen zurück, gemäß dem Schema {"summary": Zusammenfassung, die Sie extrahiert haben}""",
+Gibt die Ausgabe als Roh-JSON ohne zusätzliche Zeichen zurück, gemäß dem Schema {"summary": Zusammenfassung, die Sie extrahiert haben}""",
 }
+
+# If extra metadata such as company names / people names, participants, location, prices, amounts, etc is present
+# include it in the response as string of text in "ai_metadata" field, but keep it below 50 words.
+# Return output as raw json without any extra characters, according to schema
 
 system_prompt_metadata = {
     "en": """You are a librarian, performing indexing of the library.
-For every provided entry, you have different information available. Your task is to extract metadata from the document.
-Metadata includes: title, authors, last modification date, DOI.
-If title is not present, create it, the title should consist of at least 8-10 words to describe the document.
-If any of authors, date, DOI are not present, exclude them from response.
-Make authors a list of strings, each string is a full name of an author.
-For modification date use the format YYYY-MM-DD.
-If extra metadata such as company names / people names, participants, location, prices, amounts, etc is present
-include it in the response as string of text in "ai_metadata" field, but keep it below 50 words.
-Return output as raw json without any extra characters, according to schema
-{"title": title, "authors": authors, "pub_date": modification_date, "doi": doi, "ai_metadata": ai_metadata}""",
+Your task is to extract metadata from the document for which different information is provided.
+The extracted metadata should include:
+including:
+- title
+- document type
+- authors
+- last modification date from meta information
+- main date mentioned in the document, such as date of the event or meeting date
+- language of the document as code, e.g. "en", "de", "fr"
+- DOI (if available)
+
+Follow the instructions below:
+If filename is provided and gives good information about the document, format it as title and return.
+Generate the title if it is not found in the text. Title should communicate the main topic directly,
+be concise, informative and contain relevant keywords present in the document.
+Examples of good titles: "Supply Chain Optimization Strategy Proposal" or "Q1 2024 Financial Performance Summary".
+
+Assign document type, briefly describing the type of document, e.g. "Research Paper", "Technical Report", "Meeting notes", etc.
+
+Extract authors as list of strings, e.g. ['John Doe', 'Jane Smith'].
+
+Use date format YYYY-MM-DD.
+
+It is crucial to always include title and document type in the response even if they are not found in the document.
+Format your response as raw json without any extra characters, according to schema
+
+{"title": title,
+"authors": list of authors,
+"document_type": document type,
+"pub_date": last modification date,
+"mentioned_date": main date mentioned in the document,
+"detected_language": language code,
+"doi": DOI}""",
     "de": """Sie sind Bibliothekar und führen die Indizierung der Bibliothek durch.
-Für jeden bereitgestellten Eintrag stehen Ihnen unterschiedliche Informationen zur Verfügung. Ihre Aufgabe besteht darin, Metadaten aus dem Dokument zu extrahieren.
-Zu den Metadaten gehören: Titel, Autoren, letztes Änderungsdatum, DOI.
-Wenn kein Titel vorhanden ist, erstellen Sie ihn. Der Titel sollte aus mindestens 8-10 Wörtern bestehen, um das Dokument zu beschreiben.
-Wenn Autoren, Datum oder DOI nicht vorhanden sind, schließen Sie sie von der Antwort aus.
-Erstellen Sie für die Autoren eine Liste von Zeichenfolgen, wobei jede Zeichenfolge der vollständige Name eines Autors ist.
-Verwenden Sie für das Änderungsdatum das Format JJJJ-MM-TT.
-Wenn zusätzliche Metadaten wie Firmennamen/Personennamen, Teilnehmer, Standort, Preise, Beträge usw. vorhanden sind,
-fügen Sie diese in die Antwort als Textzeichenfolge im Feld „ai_metadata“ ein, aber halten Sie sie unter 50 Wörtern.
-Gibt die Ausgabe gemäß Schema als reines JSON ohne zusätzliche Zeichen zurück
-{"title": Titel, "authors": Autoren, "pub_date": Änderungsdatum, "doi": doi, "ai_metadata": ai_metadata}""",
+Ihre Aufgabe besteht darin, Metadaten aus dem Dokument zu extrahieren, für das verschiedene Informationen bereitgestellt werden.
+Die extrahierten Metadaten sollten Folgendes umfassen:
+einschließlich:
+- Titel
+- Dokumenttyp
+- Autoren
+- Zusammenfassung des Dokuments
+- Datum der letzten Änderung aus den Metainformationen
+- Hauptdatum, das im Dokument erwähnt wird, z. B. Datum der Veranstaltung oder Datum der Besprechung
+- Sprache des Dokuments als Code, z. B. „en“, „de“, „fr“
+- DOI (falls verfügbar)
+
+Folgen Sie den Anweisungen unten:
+Wenn ein Dateiname angegeben ist und gute Informationen über das Dokument enthält, formatieren Sie ihn als Titel und geben Sie ihn zurück.
+Generieren Sie den Titel, wenn er nicht im Text gefunden wird. Der Titel sollte das Hauptthema direkt kommunizieren,
+prägnant und informativ sein und relevante Schlüsselwörter enthalten, die im Dokument vorhanden sind.
+Beispiele für gute Titel: „Vorschlag zur Optimierung der Lieferkettenstrategie“ oder „Zusammenfassung der finanziellen Leistung Q1 2024“.
+
+Weisen Sie den Dokumenttyp zu und beschreiben Sie kurz den Dokumenttyp, z. B. „Forschungspapier“, „Technischer Bericht“, „Besprechungsnotizen“ usw.
+
+Autoren als Liste von Zeichenfolgen extrahieren, z. B. ["John Doe", "Jane Smith"].
+
+Datumsformat JJJJ-MM-TT verwenden.
+
+Es ist wichtig, Titel und Dokumenttyp immer in die Antwort aufzunehmen, auch wenn sie nicht im Dokument gefunden werden.
+Formatieren Sie Ihre Antwort gemäß Schema als Roh-JSON ohne zusätzliche Zeichen
+
+{"title": Titel,
+"authors": Liste der Autoren,
+"document_type": Dokumenttyp,
+"pub_date": Datum der letzten Änderung,
+"mentioned_date": Hauptdatum, das im Dokument erwähnt wird,
+"detected_language": Sprachcode,
+"doi": DOI}""",
 }
 
 
@@ -72,6 +125,9 @@ class LLMMetaInfoResponse(BaseModel):
     authors: List[str] | None = []
     pub_date: str | None = ""
     doi: str | None = ""
+    document_type: str | None = ""
+    mentioned_date: str | None = ""
+    detected_language: str | None = ""
     ai_metadata: str | None = ""
 
 

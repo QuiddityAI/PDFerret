@@ -22,10 +22,12 @@ if __name__ == "__main__":
 
     pdferret = PDFerret(text_model=Nebius_Llama_3_1_70B_fast(), vision_model=Mistral_Pixtral())
 
-    files = glob.glob("/home/andre/Documents/projects/pdferret/test_data/Literatur/Neuroscience medical imaging/*.pdf")
+    files = glob.glob("/home/andre/Documents/projects/pdferret/test_data/Remondis_Sample_October_2024/*.pdf")
 
-    pdfdocs, errors = pdferret.extract_batch(files[:20], lang="en")
+    pdfdocs, errors = pdferret.extract_batch(files[:20], lang="de")
     for pdfdoc in pdfdocs:
+        pdfdoc.metainfo.thumbnail = None
+        pdfdoc.metainfo.extra_metainfo = None
         print(pdfdoc.metainfo)
         fname = pdfdoc.metainfo.file_features.filename
         # change extension to json

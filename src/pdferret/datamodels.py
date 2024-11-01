@@ -50,10 +50,13 @@ class FileFeatures:
 class MetaInfo:
     doi: str = ""
     title: str = ""
+    document_type: str = ""
     abstract: str = ""
     authors: List[str] = field(default_factory=list)
     pub_date: str = ""
+    mentioned_date: str = ""
     language: str = ""
+    detected_language: str = ""
     file_features: FileFeatures = None
     npages: int = None
     thumbnail: bytes | str = None
