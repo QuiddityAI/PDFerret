@@ -119,9 +119,12 @@ class TikaExtractor(BaseProcessor):
             if not chunk:
                 continue
             doc.chunks.append(PDFChunk(text=chunk, chunk_type=ChunkType.TEXT))
-        attachments = self._get_attachments(doc.metainfo.file_features.file)
-        fig_chunks = self._extract_figures(attachments)
-        doc.chunks.extend(fig_chunks)
+        try:
+            attachments = self._get_attachments(doc.metainfo.file_features.file)
+            fig_chunks = self._extract_figures(attachments)
+            doc.chunks.extend(fig_chunks)
+        except Exception as e:
+            print(f"Error extracting attachments: {e}")
         return doc
 
     @staticmethod
