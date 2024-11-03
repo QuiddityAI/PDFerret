@@ -29,7 +29,6 @@ system_prompt_summary = {
 For every provided entry, you have different information available. Write a short summary
 (up to 6-7 sentences) for it. Only include semantic information useful to search this document.
 If abstract is found in the information provided, return it instead of writing summary.
-It is crucial to always return abstract as is if it is found.
 Do not include information about article structure, number of pages, etc.
 If no information is found, return empty string.
 Return output as raw json without any extra characters, according to schema {"summary": summary you extracted}""",
@@ -37,7 +36,6 @@ Return output as raw json without any extra characters, according to schema {"su
 Für jeden bereitgestellten Eintrag stehen Ihnen unterschiedliche Informationen zur Verfügung. Schreiben Sie eine kurze Zusammenfassung
 (bis zu 6-7 Sätze) dazu. Fügen Sie nur semantische Informationen ein, die für die Suche in diesem Dokument nützlich sind.
 Wenn in den bereitgestellten Informationen eine Zusammenfassung gefunden wird, geben Sie diese zurück, anstatt eine Zusammenfassung zu schreiben.
-Es ist wichtig, die Zusammenfassung immer so zurückzugeben, wie sie ist, wenn sie gefunden wird.
 Fügen Sie keine Informationen über Artikelstruktur, Seitenzahl usw. hinzu.
 Wenn keine Informationen gefunden werden, geben Sie eine leere Zeichenfolge zurück.
 Gibt die Ausgabe als Roh-JSON ohne zusätzliche Zeichen zurück, gemäß dem Schema {"summary": Zusammenfassung, die Sie extrahiert haben}""",
@@ -56,7 +54,7 @@ including:
 - document type
 - authors
 - last modification date from meta information
-- main date mentioned in the document, such as date of the event or meeting date
+- main date mentioned in the document or filename, such as date of the event or meeting date
 - language of the document as code, e.g. "en", "de", "fr"
 - DOI (if available)
 
@@ -79,19 +77,18 @@ Format your response as raw json without any extra characters, according to sche
 "authors": list of authors,
 "document_type": document type,
 "pub_date": last modification date,
-"mentioned_date": main date mentioned in the document,
+"mentioned_date": main date mentioned in the document or filename,
 "detected_language": language code,
 "doi": DOI}""",
     "de": """Sie sind Bibliothekar und führen die Indizierung der Bibliothek durch.
 Ihre Aufgabe besteht darin, Metadaten aus dem Dokument zu extrahieren, für das verschiedene Informationen bereitgestellt werden.
 Die extrahierten Metadaten sollten Folgendes umfassen:
-einschließlich:
 - Titel
 - Dokumenttyp
 - Autoren
-- Zusammenfassung des Dokuments
+- Dokumenttyp
 - Datum der letzten Änderung aus den Metainformationen
-- Hauptdatum, das im Dokument erwähnt wird, z. B. Datum der Veranstaltung oder Datum der Besprechung
+- Hauptdatum, das im Dokument oder Dateinamen erwähnt wird, z. B. Datum der Veranstaltung oder Datum der Besprechung
 - Sprache des Dokuments als Code, z. B. „en“, „de“, „fr“
 - DOI (falls verfügbar)
 
@@ -114,7 +111,7 @@ Formatieren Sie Ihre Antwort gemäß Schema als Roh-JSON ohne zusätzliche Zeich
 "authors": Liste der Autoren,
 "document_type": Dokumenttyp,
 "pub_date": Datum der letzten Änderung,
-"mentioned_date": Hauptdatum, das im Dokument erwähnt wird,
+"mentioned_date": Hauptdatum, das im Dokument oder Dateinamen erwähnt wird,
 "detected_language": Sprachcode,
 "doi": DOI}""",
 }
