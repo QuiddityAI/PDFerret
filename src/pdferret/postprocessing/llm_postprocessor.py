@@ -28,14 +28,12 @@ system_prompt_summary = {
     "en": """You are a librarian, performing indexing of the library.
 For every provided entry, you have different information available. Write a short summary
 (up to 6-7 sentences) for it. Only include semantic information useful to search this document.
-If abstract is found in the information provided, return it instead of writing summary.
 Do not include information about article structure, number of pages, etc.
 If no information is found, return empty string.
 Return output as raw json without any extra characters, according to schema {"summary": summary you extracted}""",
     "de": """Sie sind Bibliothekar und führen die Indizierung der Bibliothek durch.
 Für jeden bereitgestellten Eintrag stehen Ihnen unterschiedliche Informationen zur Verfügung. Schreiben Sie eine kurze Zusammenfassung
 (bis zu 6-7 Sätze) dazu. Fügen Sie nur semantische Informationen ein, die für die Suche in diesem Dokument nützlich sind.
-Wenn in den bereitgestellten Informationen eine Zusammenfassung gefunden wird, geben Sie diese zurück, anstatt eine Zusammenfassung zu schreiben.
 Fügen Sie keine Informationen über Artikelstruktur, Seitenzahl usw. hinzu.
 Wenn keine Informationen gefunden werden, geben Sie eine leere Zeichenfolge zurück.
 Gibt die Ausgabe als Roh-JSON ohne zusätzliche Zeichen zurück, gemäß dem Schema {"summary": Zusammenfassung, die Sie extrahiert haben}""",
@@ -56,7 +54,6 @@ including:
 - last modification date from meta information
 - main date mentioned in the document or filename, such as date of the event or meeting date
 - language of the document as code, e.g. "en", "de", "fr"
-- DOI (if available)
 
 Follow the instructions below:
 If filename is provided and gives good information about the document, format it as title and return.
@@ -78,8 +75,7 @@ Format your response as raw json without any extra characters, according to sche
 "document_type": document type,
 "pub_date": last modification date,
 "mentioned_date": main date mentioned in the document or filename,
-"detected_language": language code,
-"doi": DOI}""",
+"detected_language": language code}""",
     "de": """Sie sind Bibliothekar und führen die Indizierung der Bibliothek durch.
 Ihre Aufgabe besteht darin, Metadaten aus dem Dokument zu extrahieren, für das verschiedene Informationen bereitgestellt werden.
 Die extrahierten Metadaten sollten Folgendes umfassen:
@@ -90,8 +86,6 @@ Die extrahierten Metadaten sollten Folgendes umfassen:
 - Datum der letzten Änderung aus den Metainformationen
 - Hauptdatum, das im Dokument oder Dateinamen erwähnt wird, z. B. Datum der Veranstaltung oder Datum der Besprechung
 - Sprache des Dokuments als Code, z. B. „en“, „de“, „fr“
-- DOI (falls verfügbar)
-
 Folgen Sie den Anweisungen unten:
 Wenn ein Dateiname angegeben ist und gute Informationen über das Dokument enthält, formatieren Sie ihn als Titel und geben Sie ihn zurück.
 Generieren Sie den Titel, wenn er nicht im Text gefunden wird. Der Titel sollte das Hauptthema direkt kommunizieren,
@@ -112,8 +106,7 @@ Formatieren Sie Ihre Antwort gemäß Schema als Roh-JSON ohne zusätzliche Zeich
 "document_type": Dokumenttyp,
 "pub_date": Datum der letzten Änderung,
 "mentioned_date": Hauptdatum, das im Dokument oder Dateinamen erwähnt wird,
-"detected_language": Sprachcode,
-"doi": DOI}""",
+"detected_language": Sprachcode}""",
 }
 
 
