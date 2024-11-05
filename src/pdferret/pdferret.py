@@ -92,6 +92,7 @@ class PDFerret:
         docs_groups = {}
         for key, doc in file_list.items():
             ext = os.path.splitext(key)[1][1:]  # remove the dot
+            ext = ext.lower()
             if ext not in docs_groups:
                 docs_groups[ext] = {}
             docs_groups[ext][key] = doc

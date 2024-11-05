@@ -10,6 +10,7 @@ from .postprocessing.llm_postprocessor import LLMPostprocessor
 from .text_extrators.pandoc_md import PandocMDExtractor
 from .text_extrators.tika import TikaExtractor, TikaSpreadsheetExtractor
 from .text_extrators.visual_extractor import VisualPDFExtractor
+from .text_extrators.raw_text import RawTextExtractor
 from .thumbnails.libreoffice import LibreOfficeThumbnailer
 
 
@@ -41,6 +42,11 @@ def get_recipes(text_model: BaseLLMModel, vision_model: BaseLLMModel):
             PipelineStep(OfficeMetaExtractor),
             PipelineStep(LibreOfficeThumbnailer),
             PipelineStep(PandocMDExtractor),
+            PipelineStep(LLMPostprocessor, {"llm_model": text_model}),
+        ],
+        "txt": [
+            PipelineStep(LibreOfficeThumbnailer),
+            PipelineStep(RawTextExtractor),
             PipelineStep(LLMPostprocessor, {"llm_model": text_model}),
         ],
         # doc: similar to docx but convert to docx before sending to pandoc

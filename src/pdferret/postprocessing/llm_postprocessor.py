@@ -159,10 +159,14 @@ class LLMPostprocessor(BaseProcessor):
             lang = "en"
             logging.warning(f"Language {lang} is not supported, using English instead")
 
+        remaining_table_descriptions = 5
         for chunk in pdfdoc.chunks:
+            if remaining_table_descriptions <= 0:
+                break
             if self.llm_table_description and chunk.chunk_type == ChunkType.TABLE:
                 try:
                     chunk.text = self._llm_table_descr(chunk.non_embeddable_content, lang)
+                    remaining_table_descriptions -= 1
                 except Exception as e:
                     logging.error(f"Failed to generate LLM table description: {e}")
 
@@ -196,17 +200,18 @@ class LLMPostprocessor(BaseProcessor):
         if pdfdoc.chunks:
             useful_info += "Content: "
             idx = 0
+            remaining_text_chunks = self.summary_max_chunks
+            remaining_visual_pages = 10
             for chunk in pdfdoc.chunks:
-                if idx >= self.summary_max_chunks:
-                    break
                 # take up to summary_max_chunks text chunks
-                if chunk.chunk_type == ChunkType.TEXT:
+                if chunk.chunk_type == ChunkType.TEXT and remaining_text_chunks > 0:
                     useful_info += chunk.text + "\n"
-                    idx += 1
-                # always take all visual pages if present
+                    remaining_text_chunks -= 1
+                # always take all (up to 10) visual pages if present
                 # otherwise why would we have them?
-                if chunk.chunk_type == ChunkType.VISUAL_PAGE:
+                if chunk.chunk_type == ChunkType.VISUAL_PAGE and remaining_visual_pages > 0:
                     useful_info += chunk.text + "\n"
+                    remaining_visual_pages -= 1
         current_tokens = count_tokens_rough(useful_info)
         if current_tokens > self.llm_model.config.max_input_tokens:
             max_input_tokens = self.llm_model.config.max_input_tokens
@@ -250,7 +255,7 @@ class LLMPostprocessor(BaseProcessor):
             data_model=LLMTableResponse,
             user_prompt=table_as_html,
             temperature=0.2,
-            max_tokens=None,
+            max_tokens=1000,
         )
         if descr_resp:
             return descr_resp.description

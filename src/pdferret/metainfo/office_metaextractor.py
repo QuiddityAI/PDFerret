@@ -3,6 +3,7 @@ import zipfile
 from ..base import BaseProcessor
 from ..datamodels import PDFDoc
 from ..utils.xml_utils import clean_xml
+from ..logging import logger
 
 
 class OfficeMetaExtractor(BaseProcessor):
@@ -18,7 +19,11 @@ class OfficeMetaExtractor(BaseProcessor):
     operates_on = PDFDoc
 
     def process_single(self, doc: PDFDoc) -> PDFDoc:
-        zipf = zipfile.ZipFile(doc.metainfo.file_features.file, "r")
+        try:
+            zipf = zipfile.ZipFile(doc.metainfo.file_features.file, "r")
+        except zipfile.BadZipFile:
+            logger.error(f"Bad zip file: {doc.metainfo.file_features.file}")
+            return doc
         xml_meta = []
 
         for file in zipf.namelist():
