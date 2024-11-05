@@ -21,6 +21,13 @@ Following env variables are supported to configure PDFerret:
 - `PDFERRET_VISUAL_MAX_PAGES` - sets how many pages will be used for extracting information with vision model. Defaults to 3.
 - LLMonkey API keys are also required for some extractors, see llmonkey documentation for more information
 
+## Using the Google API
+
+Create a credentials file before building the Docker container using:
+`gcloud auth application-default login`
+
+It will then be mounted to the container.
+
 # Usage
 
 As soon as pdferret package is installed and GROBID is running you can import the package and parse the batch of PDFs:

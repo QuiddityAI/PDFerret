@@ -19,6 +19,9 @@ services:
       - LLMONKEY_COHERE_API_KEY=${LLMONKEY_COHERE_API_KEY}
       - LLMONKEY_MISTRAL_API_KEY=${LLMONKEY_MISTRAL_API_KEY}
       - LLMONKEY_NEBIUS_API_KEY=${LLMONKEY_NEBIUS_API_KEY}
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/pdferret/application_default_credentials.json
+    volumes:
+      - ${HOME}/.config/gcloud/application_default_credentials.json:/app/pdferret/application_default_credentials.json
 
 
   tika :
