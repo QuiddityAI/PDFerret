@@ -50,7 +50,7 @@ class VisualPDFExtractor(BaseProcessor):
             lang = "en"
 
         for img in imgs:
-            resp = self.model.generate_prompt_response(user_prompt=prompt[lang], image=img, temperature=0.2)
+            resp = self.model.generate_prompt_response(user_prompt=prompt[lang], image=img, temperature=0.2, max_tokens=1000)
             if not resp:
                 continue
             chunk = PDFChunk(
