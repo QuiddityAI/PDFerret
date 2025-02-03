@@ -17,7 +17,7 @@ Following env variables are supported to configure PDFerret:
 - `PDFERRET_BATCH_SIZE` - sets batch size for parallel processing, i.e. how many items are processed between fork and join. Must be at least `PDFERRET_NPROC`, but shouldn't have strong influence on performance otherwise
 - `PDFERRET_MAX_PAGES` - all pdfs will be cropped to first MAX_PAGES WARNING! Currently not implemented
 - `PDFERRET_TIKA_SERVER_URL` - address of the Tika
-- `PDFERRET_TIKA_OCR_STRATEGY` - controls how Tika will handle pdfs without text. Must be one of 'AUTO', 'OCR_ONLY', 'NO_OCR', 'OCR_AND_TEXT_EXTRACTION', defaults to 'AUTO'
+- `PDFERRET_TIKA_OCR_STRATEGY` - controls how Tika will handle pdfs without text. Must be one of 'AUTO', 'OCR_ONLY', 'NO_OCR', 'OCR_AND_TEXT_EXTRACTION', defaults to 'NO_OCR'
 - `PDFERRET_VISUAL_MAX_PAGES` - sets how many pages will be used for extracting information with vision model. Defaults to 3.
 - LLMonkey API keys are also required for some extractors, see llmonkey documentation for more information
 

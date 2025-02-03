@@ -1,0 +1,14 @@
+version: "3.8"
+services:
+
+  pdferret:
+    build:
+      context: .
+    image: pdferret
+    ports:
+      - "127.0.0.1:58080:80"
+      - "127.0.0.1:5678:5678"
+    entrypoint: [ "/bin/sh", "-c" ]
+    command:
+      - >
+        python -Xfrozen_modules=off -m debugpy --listen 0.0.0.0:5678 --wait-for-client -m fastapi run /app/pdferret/api/server.py --port 80 --workers 1
