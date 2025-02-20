@@ -20,6 +20,8 @@ Following env variables are supported to configure PDFerret:
 - `PDFERRET_TIKA_OCR_STRATEGY` - controls how Tika will handle pdfs without text. Must be one of 'AUTO', 'OCR_ONLY', 'NO_OCR', 'OCR_AND_TEXT_EXTRACTION', defaults to 'NO_OCR'
 - `PDFERRET_VISUAL_MAX_PAGES` - sets how many pages will be used for extracting information with vision model. Defaults to 3.
 - LLMonkey API keys are also required for some extractors, see llmonkey documentation for more information
+- `PDFERRET_MAX_CHUNK_LEN` - maximum length of chunk for chunking algo
+- `PDFERRET_CHUNK_OVERLAP` - overlap of chunks for chunking algo
 
 ## Using the Google API
 

@@ -114,7 +114,11 @@ def process_files_by_stream(
     kwds = {"return_images": params.return_images}
     return PDFerretResults(
         extracted=[
-            PydanticPDFDoc(metainfo=_prepare_metainfo(e.metainfo, **kwds), chunks=_prepare_chunks(e.chunks, **kwds))
+            PydanticPDFDoc(
+                metainfo=_prepare_metainfo(e.metainfo, **kwds),
+                chunks=_prepare_chunks(e.chunks, **kwds),
+                full_text=e.full_text,
+            )
             for e in extracted
         ],
         errors=[PydanticPDFError(exc=e.exc, traceback="\n".join(e.traceback), file=str(e.file)) for e in errors],

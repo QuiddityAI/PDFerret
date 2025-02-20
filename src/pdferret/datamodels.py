@@ -68,3 +68,4 @@ class MetaInfo:
 class PDFDoc:
     metainfo: MetaInfo = field(default_factory=MetaInfo)
     chunks: List[PDFChunk] = field(default_factory=lambda: [])
+    full_text: str = ""

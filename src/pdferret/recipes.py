@@ -12,6 +12,7 @@ from .text_extrators.tika import TikaExtractor, TikaSpreadsheetExtractor
 from .text_extrators.visual_extractor import VisualPDFExtractor
 from .text_extrators.raw_text import RawTextExtractor
 from .thumbnails.libreoffice import LibreOfficeThumbnailer
+from .chunking import SimpleChunker
 
 
 @dataclasses.dataclass
@@ -37,17 +38,20 @@ def get_recipes(text_model: BaseLLMModel, vision_model: BaseLLMModel):
             PipelineStep(LibreOfficeThumbnailer),
             PipelineStep(PandocMDExtractor),
             PipelineStep(LLMPostprocessor, {"llm_model": text_model}),
+            PipelineStep(SimpleChunker),
         ],
         "odt": [
             PipelineStep(OfficeMetaExtractor),
             PipelineStep(LibreOfficeThumbnailer),
             PipelineStep(PandocMDExtractor),
             PipelineStep(LLMPostprocessor, {"llm_model": text_model}),
+            PipelineStep(SimpleChunker),
         ],
         "txt": [
             PipelineStep(LibreOfficeThumbnailer),
             PipelineStep(RawTextExtractor),
             PipelineStep(LLMPostprocessor, {"llm_model": text_model}),
+            PipelineStep(SimpleChunker),
         ],
         # doc: similar to docx but convert to docx before sending to pandoc
         # also doc is non-xml so we need to convert to docx before we can extract metadata
@@ -57,6 +61,7 @@ def get_recipes(text_model: BaseLLMModel, vision_model: BaseLLMModel):
             PipelineStep(OfficeMetaExtractor),
             PipelineStep(PandocMDExtractor),
             PipelineStep(LLMPostprocessor, {"llm_model": text_model}),
+            PipelineStep(SimpleChunker),
         ],
         # pptx and similar: 0) Extract metainfo 1) convert to pdf, 2) extract text with Tika,
         # 3) extract additional info using visual model, 4) postprocess with LLM
@@ -67,6 +72,7 @@ def get_recipes(text_model: BaseLLMModel, vision_model: BaseLLMModel):
             PipelineStep(TikaExtractor, {"tika_url": tika_url}),
             PipelineStep(VisualPDFExtractor, {"model": vision_model, "max_pages": visual_max_pages}),
             PipelineStep(LLMPostprocessor, {"llm_model": text_model}),
+            PipelineStep(SimpleChunker),
         ],
         "pptx": [
             PipelineStep(OfficeMetaExtractor),
@@ -74,6 +80,7 @@ def get_recipes(text_model: BaseLLMModel, vision_model: BaseLLMModel):
             PipelineStep(TikaExtractor, {"tika_url": tika_url}),
             PipelineStep(VisualPDFExtractor, {"model": vision_model, "max_pages": visual_max_pages}),
             PipelineStep(LLMPostprocessor, {"llm_model": text_model}),
+            PipelineStep(SimpleChunker),
         ],
         # pdf: 1) extract text with Tika + save metadata,
         # 2) extract additional info using visual model, 3) postprocess with LLM
@@ -84,6 +91,7 @@ def get_recipes(text_model: BaseLLMModel, vision_model: BaseLLMModel):
             ),
             PipelineStep(VisualPDFExtractor, {"model": vision_model, "max_pages": visual_max_pages}),
             PipelineStep(LLMPostprocessor, {"llm_model": text_model}),
+            PipelineStep(SimpleChunker),
         ],
         # xlsx and similar 1) extract metadata from XML in the xlsx file, 2) Get thumbnail using LibreOffice,
         # 3) extract text with Tika spreadsheet extractor (will convert spreadsheet to markdown),
