@@ -25,18 +25,52 @@ Gibt die Ausgabe als reines JSON ohne zusätzliche Zeichen zurück, gemäß dem 
 
 
 system_prompt_summary = {
-    "en": """You are a librarian, performing indexing of the library.
-For every provided entry, you have different information available. Write a short summary
-(up to 6-7 sentences) for it. Only include semantic information useful to search this document.
-Do not include information about article structure, number of pages, etc.
-If no information is found, return empty string.
-Return output as raw json without any extra characters, according to schema {"summary": summary you extracted}""",
-    "de": """Sie sind Bibliothekar und führen die Indizierung der Bibliothek durch.
-Für jeden bereitgestellten Eintrag stehen Ihnen unterschiedliche Informationen zur Verfügung. Schreiben Sie eine kurze Zusammenfassung
-(bis zu 6-7 Sätze) dazu. Fügen Sie nur semantische Informationen ein, die für die Suche in diesem Dokument nützlich sind.
-Fügen Sie keine Informationen über Artikelstruktur, Seitenzahl usw. hinzu.
-Wenn keine Informationen gefunden werden, geben Sie eine leere Zeichenfolge zurück.
-Gibt die Ausgabe als Roh-JSON ohne zusätzliche Zeichen zurück, gemäß dem Schema {"summary": Zusammenfassung, die Sie extrahiert haben}""",
+    "en": """
+You are a librarian and are conducting the indexing of documents.
+
+Create two summaries for the document listed below:
+
+1. search_description:
+    A very brief description of the document with all the information someone might search for.
+    The following should be included in two to three sentences (if applicable): main topic, involved persons, projects, locations, included spreadsheets, important dates, etc.
+    No results or conclusions should be included. The structure of the document should not be described.
+    Don't use fill words, short sentences are fine.
+
+2. content_summary:
+    A summary of the document's content that condenses the most important points into a maximum of 6–7 sentences.
+    This should include the most important information, conclusions, and results of the document.
+    The structure of the document should not be described.
+    The wording should stay close to the original text. Bullet points may be used.
+
+If no information is found, provide an empty string for each.
+Format the response in the following schema as raw JSON without additional characters:
+{
+    "search_description": search_description,
+    "content_summary": content_summary
+}""",
+    "de": """
+Sie sind Bibliothekar und führen die Indizierung von Dokumenten durch.
+
+Erstellen sie zwei Teile einer Zusammenfassung für das unten aufgeführte Dokument:
+1. search_description:
+    Eine sehr kurze Beschreibung des Dokuments mit allen Informationen, nach denen man möglicherweise suchen würde.
+    Folgendes soll in drei bis vier Sätzen enthalten sein (falls im Dokument enthalten): Hauptthema, beteiligte Personen, Projekte, Standorte, enthaltene Tabellenblätter, wichtige Zeitpunkte, Kennnummern etc.
+    Es sollen keine Ergebnisse oder Schlussfolgerungen enthalten sein. Es soll nicht die Struktur des Dokuments beschrieben werden.
+    Verwenden Sie keine Füllwörter, kurze Sätze sind in Ordnung. Wiederhole nicht den Titel des Dokuments.
+    Nenne keine Informationen, die nicht im Dokument enthalten sind.
+
+2. content_summary:
+    Eine Zusammenfassung des Inhalts des Dokuments, die in maximal 6-7 Sätzen die wichtigsten Punkte zusammenfasst.
+    Hierbei sollen die wichtigsten Informationen, Schlussfolgerungen und Ergebnisse des Dokuments enthalten sein.
+    Es soll keine Struktur des Dokuments beschrieben werden.
+    Die Wortwahl sollte nah am Originaltext sein. Es können Stichpunkte verwendet und Markdown-Formatierungen angewendet werden.
+
+Wenn keine Informationen gefunden werden, geben Sie jeweils eine leere Zeichenfolge an.
+Formatieren sie die Antwort in folgendem Schema als Roh-JSON ohne zusätzliche Zeichen:
+{
+    "search_description": search_description,
+    "content_summary": content_summary
+}"""
 }
 
 # If extra metadata such as company names / people names, participants, location, prices, amounts, etc is present
@@ -50,8 +84,7 @@ The extracted metadata should include:
 including:
 - title
 - document type
-- authors
-- last modification date from meta information
+- people involved
 - main date mentioned in the document or filename, such as date of the event or meeting date
 - language of the document as code, e.g. "en", "de", "fr"
 
@@ -63,17 +96,17 @@ Examples of good titles: "Supply Chain Optimization Strategy Proposal" or "Q1 20
 
 Assign document type, briefly describing the type of document, e.g. "Research Paper", "Technical Report", "Meeting notes", etc.
 
-Extract authors as list of strings, e.g. ['John Doe', 'Jane Smith'].
+Involved people (authors, participants, etc.) should be listed as a list of names, e.g. ["John Doe", "Jane Smith"].
 
-Use date format YYYY-MM-DD.
+Use the date format YYYY-MM-DD.
+If month or day is not provided, please use the first day of the month / year.
 
-It is crucial to always include title and document type in the response even if they are not found in the document.
-Format your response as raw json without any extra characters, according to schema
+If any information is not found in the document, return empty strings.
+Format your response as raw json without any extra characters, according to the schema:
 
 {"title": title,
-"authors": list of authors,
 "document_type": document type,
-"pub_date": last modification date,
+"people": list of involved people,
 "mentioned_date": main date mentioned in the document or filename,
 "detected_language": language code}""",
     "de": """Sie sind Bibliothekar und führen die Indizierung der Bibliothek durch.
@@ -81,30 +114,31 @@ Ihre Aufgabe besteht darin, Metadaten aus dem Dokument zu extrahieren, für das 
 Die extrahierten Metadaten sollten Folgendes umfassen:
 - Titel
 - Dokumenttyp
-- Autoren
-- Dokumenttyp
-- Datum der letzten Änderung aus den Metainformationen
+- beteiligte Personen
 - Hauptdatum, das im Dokument oder Dateinamen erwähnt wird, z. B. Datum der Veranstaltung oder Datum der Besprechung
 - Sprache des Dokuments als Code, z. B. „en“, „de“, „fr“
+
 Folgen Sie den Anweisungen unten:
-Wenn ein Dateiname angegeben ist und gute Informationen über das Dokument enthält, formatieren Sie ihn als Titel und geben Sie ihn zurück.
-Generieren Sie den Titel, wenn er nicht im Text gefunden wird. Der Titel sollte das Hauptthema direkt kommunizieren,
-prägnant und informativ sein und relevante Schlüsselwörter enthalten, die im Dokument vorhanden sind.
+
+Erstellen Sie einen kurzen, informativen Titel. Der Titel sollte zwischen 3 bis 7 Wörter lang sein.
+Falls ein aussagekräftiger Dateinname verfügbar ist oder im Dokument ein Titel genannt wird, sollte sich die Wortwahl möglichst nah daran orientieren.
+Es sollte jedoch in jedem Fall das Hauptthema des Dokuments genannt werden und nicht nur die Art des Dokuments (z. B. „Bericht über Projekt X“ statt "Bericht").
 Beispiele für gute Titel: „Vorschlag zur Optimierung der Lieferkettenstrategie“ oder „Zusammenfassung der finanziellen Leistung Q1 2024“.
 
-Weisen Sie den Dokumenttyp zu und beschreiben Sie kurz den Dokumenttyp, z. B. „Forschungspapier“, „Technischer Bericht“, „Besprechungsnotizen“ usw.
+Weisen Sie dem Dokumenttyp eine sehr kurze Beschreibung der Art des Dokuments zu, z. B. „Forschungsartikel“, „Technischer Bericht“, „Besprechungsnotizen“ usw.
+Falls das Dokument eine Vorlage oder kommentierte Version ist, geben Sie dies auch an.
 
-Autoren als Liste von Zeichenfolgen extrahieren, z. B. ["John Doe", "Jane Smith"].
+Beteiligte Personen (Autoren, Teilnehmer etc.) sollen als Liste von Namen angegeben werden, z. B. ["John Doe", "Jane Smith"].
 
-Datumsformat JJJJ-MM-TT verwenden.
+Als Datumsformat soll JJJJ-MM-TT verwendet werden.
+Wenn kein Monat oder Tag angegeben ist, geben Sie bitte den 01. an.
 
-Es ist wichtig, Titel und Dokumenttyp immer in die Antwort aufzunehmen, auch wenn sie nicht im Dokument gefunden werden.
-Formatieren Sie Ihre Antwort gemäß Schema als Roh-JSON ohne zusätzliche Zeichen
+Formatieren Sie Ihre Antwort gemäß des Schemas als Roh-JSON ohne zusätzliche Zeichen.
+Sollten Informationen nicht im Dokument gefunden werden, geben Sie leere Zeichenfolgen zurück.
 
 {"title": Titel,
-"authors": Liste der Autoren,
 "document_type": Dokumenttyp,
-"pub_date": Datum der letzten Änderung,
+"people": Liste der beteiligten Personen,
 "mentioned_date": Hauptdatum, das im Dokument oder Dateinamen erwähnt wird,
 "detected_language": Sprachcode}""",
 }
@@ -112,13 +146,10 @@ Formatieren Sie Ihre Antwort gemäß Schema als Roh-JSON ohne zusätzliche Zeich
 
 class LLMMetaInfoResponse(BaseModel):
     title: str
-    authors: List[str] | None = []
-    pub_date: str | None = ""
-    doi: str | None = ""
+    people: List[str] | None = []
     document_type: str | None = ""
     mentioned_date: str | None = ""
     detected_language: str | None = ""
-    ai_metadata: str | None = ""
 
 
 class LLMTableResponse(BaseModel):
@@ -126,7 +157,8 @@ class LLMTableResponse(BaseModel):
 
 
 class LLMSummaryResponse(BaseModel):
-    summary: str
+    search_description: str
+    content_summary: str
 
 
 class LLMPostprocessor(BaseProcessor):
@@ -179,13 +211,10 @@ class LLMPostprocessor(BaseProcessor):
     def _generate_llm_abstract_metadata(self, pdfdoc: PDFDoc, lang="en"):
         useful_info = f"Filename: {pdfdoc.metainfo.file_features.filename}\n"
 
-        if pdfdoc.metainfo.title:
-            useful_info += f"Title: {pdfdoc.metainfo.title}\n"
-
-        if pdfdoc.metainfo.extra_metainfo:
-            useful_info += "Extra metadata: "
-            for key, value in pdfdoc.metainfo.extra_metainfo.items():
-                useful_info += f"{key}: {value}\n"
+        # if pdfdoc.metainfo.extra_metainfo:
+        #     useful_info += "Extra metadata: "
+        #     for key, value in pdfdoc.metainfo.extra_metainfo.items():
+        #         useful_info += f"{key}: {value}\n"
         metainfo = useful_info  # save for metadata extraction
         # append first 2 chunks to metainfo
         metainfo += "\nDocument content: "
@@ -221,17 +250,6 @@ class LLMPostprocessor(BaseProcessor):
             end = int(0.95 * len(useful_info) * max_input_tokens / current_tokens)
             useful_info = useful_info[:end]
 
-        if self.llm_summary and (not pdfdoc.metainfo.abstract or self.llm_overwrite_abstract):
-            summary_resp, raw_resp = self.llm_model.generate_structured_response(
-                data_model=LLMSummaryResponse,
-                user_prompt=useful_info,
-                system_prompt=system_prompt_summary[lang],
-                temperature=0.4,
-                max_tokens=1000,
-            )
-            if not summary_resp:
-                raise ValueError("No summary was returned by LLM")
-            pdfdoc.metainfo.abstract = summary_resp.summary
         if self.llm_metainfo:
             metadata_resp, raw_resp = self.llm_model.generate_structured_response(
                 data_model=LLMMetaInfoResponse,
@@ -244,8 +262,24 @@ class LLMPostprocessor(BaseProcessor):
                 raise ValueError("No metadata was returned by LLM")
             # only update metadata which is not empty
             for key, value in metadata_resp.model_dump().items():
+                if key == "people":
+                    # "people" is more adequate for non-scientific documents, but the rest of the code uses "authors"
+                    key = "authors"
                 if value:
                     pdfdoc.metainfo.__dict__[key] = value
+        if self.llm_summary and (not pdfdoc.metainfo.abstract or self.llm_overwrite_abstract):
+            useful_info += f"\nTitle: {pdfdoc.metainfo.title}\n"
+            summary_resp, raw_resp = self.llm_model.generate_structured_response(
+                data_model=LLMSummaryResponse,
+                user_prompt=useful_info,
+                system_prompt=system_prompt_summary[lang],
+                temperature=0.4,
+                max_tokens=1000,
+            )
+            if not summary_resp:
+                raise ValueError("No summary was returned by LLM")
+            pdfdoc.metainfo.abstract = summary_resp.content_summary
+            pdfdoc.metainfo.search_description = summary_resp.search_description
         return pdfdoc
 
     def _llm_table_descr(self, table_as_html, lang="en"):

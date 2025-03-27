@@ -51,6 +51,7 @@ class MetaInfo:
     doi: str = ""
     title: str = ""
     document_type: str = ""
+    search_description: str = ""
     abstract: str = ""
     authors: List[str] = field(default_factory=list)
     pub_date: str = ""
