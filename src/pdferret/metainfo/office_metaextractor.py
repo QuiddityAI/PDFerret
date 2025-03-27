@@ -30,5 +30,5 @@ class OfficeMetaExtractor(BaseProcessor):
             if file.startswith("docProps") and file.endswith("xml"):
                 xml_meta.append(clean_xml(zipf.read(file).decode()))
 
-        doc.metainfo.extra_metainfo["office_metaifo"] = "\n".join(xml_meta)
+        doc.metainfo.extra_metainfo["office_metainfo"] = "\n".join(xml_meta)
         return doc
