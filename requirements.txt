@@ -6,6 +6,6 @@ requests
 fastapi[standard]
 python-multipart
 tika
-llmonkey @ git+https://github.com/Trel725/LLMonkey.git
+llmonkey @ git+https://github.com/QuiddityAI/LLMonkey.git
 pypandoc
 debugpy
