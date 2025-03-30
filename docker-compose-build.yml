@@ -2,7 +2,9 @@ version: "3.8"
 services:
 
   pdferret:
-    image: quiddityai/pdferret
+    build:
+      context: .
+    image: pdferret
     ports:
       - "127.0.0.1:58080:80"
     dns:
